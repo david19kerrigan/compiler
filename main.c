@@ -4,15 +4,18 @@
 
 int main(){
     FILE *fptr = fopen("input.c", "r");
+    int *stack[] = malloc(32);
     int sum = 0;
-    while(1){
+    while(feof(fptr) == 0){
         char in = fgetc(fptr);
         if(strchr("0123456789", in)){
-            sum += (in - '0');
         } else if(strchr("abcdefghijklmnopqrstuvwxyz", in)){
+        } else if(in == '+'){
+            sum += (in - '0');
+        } else if(in == '-'){
+        } else if(in == '*'){
+        } else if(in == '/'){
         }
-        //printf("%c\n", in);
-        if(feof(fptr) > 0) break;
     }
     printf("%d\n", sum);
     pclose(fptr);

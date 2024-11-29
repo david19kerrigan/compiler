@@ -15,11 +15,11 @@ default: test
 .PHONY: test
 test:
 	@i=1; \
-	for test_file in $(VARS_TEST_FILES); do \
-		expected=$$(echo $(ANS_VARS) | cut -d' ' -f$$((i))); \
+	for test_file in $(MATH_TEST_FILES); do \
+		expected=$$(echo $(ANS_MATH) | cut -d' ' -f$$((i))); \
 		$(CC) $(CFLAGS) ./$(SRC_DIR)/compile.c -o $(BUILD_DIR)/compile.out ; \
 		$(BUILD_DIR)/compile.out ../$(TEST_DIR)/"$$test_file" ; \
-		cat $(BUILD_DIR)/main.asm ; \
+		# cat $(BUILD_DIR)/main.asm ; \
 		$(AC) $(AFLAGS) $(BUILD_DIR)/main.asm -o $(BUILD_DIR)/main.out ; \
 		$(AC) $(AFLAGS) ./$(SRC_DIR)/lib.asm -o $(BUILD_DIR)/lib.out ; \
 		ld $(BUILD_DIR)/main.out $(BUILD_DIR)/lib.out -o $(BUILD_DIR)/final.out ; \

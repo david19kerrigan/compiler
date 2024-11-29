@@ -10,6 +10,7 @@ static int vars_ptr = 0;
 static const char *build_dir = "build/";
 static const char *src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
+static const int align = 32;
 
 void recall_variable(char* text, int* text_ptr){
     if(*text_ptr > 0){
@@ -20,7 +21,7 @@ void recall_variable(char* text, int* text_ptr){
         }
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n"
-            "push rax \n\n", offset * 32 + 32);
+            "push rax \n\n", offset * align + align);
         *text_ptr = 0;
     }
 }
@@ -30,7 +31,7 @@ void set_variable(char* text, int* text_ptr){
         text[*text_ptr] = '\0';
         fprintf(write_ptr,
             "pop rax \n"
-            "mov [rbp-%d], rax \n\n", vars_ptr * 32 + 32);
+            "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
         text[*text_ptr] = '\0';
         vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         strcpy(vars[vars_ptr++], text);

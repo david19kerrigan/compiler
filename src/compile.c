@@ -17,6 +17,8 @@ void recall_variable(char* var_name){
         for(int i = 0; i < vars_ptr; ++i){
             if(strcmp(vars[i], var_name) == 0) offset = i;
         }
+        printf("recall %s\n", var_name);
+        printf("offset %d\n", offset);
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n", offset * 16 + 16,
             "push rax \n\n");

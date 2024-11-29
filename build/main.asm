@@ -28,11 +28,11 @@ mov [rbp-16], rax
 ; cur 3 
 ; cur * 
 push 3 
-mov rax, [rbp--1534026480] 
+mov rax, [rbp--588669680] 
 ; cur 2 
 ; cur ; 
 push 2 
-mov rax, [rbp--1534024944] 
+mov rax, [rbp--588651504] 
 pop rax 
 pop rbx 
 imul rax, rbx 

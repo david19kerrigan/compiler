@@ -18,8 +18,8 @@ void recall_variable(char* var_name){
             if(strcmp(vars[i], var_name) == 0) offset = i;
         }
         fprintf(write_ptr,
-            "mov rax, [rbp-%d] \n", offset * 16 + 16,
-            "push rax \n\n");
+            "mov rax, [rbp-%d] \n"
+            "push rax \n\n", offset * 32 + 32);
     }
 }
 
@@ -27,7 +27,7 @@ void set_variable(char* text, int text_ptr){
     if(text_ptr > 0){
         fprintf(write_ptr,
             "pop rax \n"
-            "mov qword [rbp-%d], rax \n\n", vars_ptr * 16 + 16);
+            "mov [rbp-%d], rax \n\n", vars_ptr * 32 + 32);
         text[text_ptr] = '\0';
         vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         strcpy(vars[vars_ptr++], text);
@@ -35,11 +35,11 @@ void set_variable(char* text, int text_ptr){
     }
 }
 
-void store_number(char* num, int num_ptr){
-    if(num_ptr > 0){
-        num[num_ptr] = '\0';
+void store_number(char* num, int* num_ptr){
+    if(*num_ptr > 0){
+        num[*num_ptr] = '\0';
         fprintf(write_ptr, "push %s \n", num);
-        num_ptr = 0;
+        *num_ptr = 0;
     }
 }
 
@@ -124,7 +124,7 @@ void read_chars(int length){
     int num_ptr = 0;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        // (write_ptr, "; cur %s \n", &cur);
+        // fprintf(write_ptr, "; cur %s \n", &cur);
         if(is_num(cur)){
             num[num_ptr++] = cur;
         }
@@ -134,12 +134,12 @@ void read_chars(int length){
         else{
             if(length > 0 && --length == 0){
                 ungetc(cur, read_ptr);
-                store_number(num, num_ptr);
+                store_number(num, &num_ptr);
                 recall_variable(text);
                 return;
             }
             else if(cur == '('){
-                store_number(num, num_ptr);
+                store_number(num, &num_ptr);
                 read_chars(0);
                 text_ptr = '\0';
                 if(strcmp(text, "print") == 0){
@@ -147,12 +147,12 @@ void read_chars(int length){
                 }
             }
             else if(cur == ')'){
-                store_number(num, num_ptr);
+                store_number(num, &num_ptr);
                 recall_variable(text);
                 return;
             }
             else if(is_operator(cur)){
-                store_number(num, num_ptr);
+                store_number(num, &num_ptr);
                 recall_variable(text);
                 if(handle_math_operator(cur, num, num_ptr)) return;
             }
@@ -162,13 +162,13 @@ void read_chars(int length){
                 return;
             }
             else if(strchr(";\n ", cur)){
-                store_number(num, num_ptr);
+                store_number(num, &num_ptr);
                 return;
             }
         }
     }
     if(feof(read_ptr) != 0){
-        store_number(num, num_ptr);
+        store_number(num, &num_ptr);
     }
     free(text);
     free(num);

@@ -15,7 +15,7 @@ add rax, rbx
 push rax 
 
 pop rax 
-mov qword [rbp-16], rax 
+mov [rbp-32], rax 
 
 push 3 
 push 2 
@@ -24,12 +24,15 @@ pop rbx
 imul rax, rbx 
 push rax 
 
-push 3 
 pop rax 
-mov qword [rbp-32], rax 
+mov [rbp-64], rax 
 
-mov rax, [rbp-16] 
 mov rax, [rbp-32] 
+push rax 
+
+mov rax, [rbp-64] 
+push rax 
+
 pop rax 
 pop rbx 
 add rax, rbx 

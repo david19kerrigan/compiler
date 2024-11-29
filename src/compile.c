@@ -151,7 +151,6 @@ void read_chars(int length){
             }
             else if(cur == ')'){
                 store_number(num, &num_ptr);
-                fprintf(write_ptr, "; recall \n");
                 recall_variable(text, &text_ptr);
                 return;
             }

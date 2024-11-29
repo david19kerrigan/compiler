@@ -148,6 +148,12 @@ void read_chars(int length){
                 if(strcmp(text, "print") == 0){
                     print_int();
                 }
+                if(strcmp(text, "if") == 0){
+                    // bleh
+                }
+                if(strcmp(text, "while") == 0){
+                    // bleh
+                }
             }
             else if(cur == ')'){
                 store_number(num, &num_ptr);

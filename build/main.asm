@@ -1,4 +1,3 @@
-align 16 
 global _start 
 extern print_int 
 extern int_to_string 

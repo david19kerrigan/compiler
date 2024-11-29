@@ -197,7 +197,6 @@ void compile(char *input_file){
     vars = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
 
     fprintf(write_ptr,
-        "align 16 \n"
         "global _start \n" 
         "extern print_int \n" 
         "extern int_to_string \n" 

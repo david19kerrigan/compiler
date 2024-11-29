@@ -1,4 +1,3 @@
-align 16
 global print_int
 print_int:
     mov rax, rdi

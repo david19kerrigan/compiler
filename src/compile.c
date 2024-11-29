@@ -11,27 +11,30 @@ static const char *build_dir = "build/";
 static const char *src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
 
-void recall_variable(char* var_name){
-    if(vars_ptr > 0 && strcmp("", var_name) != 0){
+void recall_variable(char* text, int* text_ptr){
+    if(*text_ptr > 0){
+        text[*text_ptr] = '\0';
         int offset;
         for(int i = 0; i < vars_ptr; ++i){
-            if(strcmp(vars[i], var_name) == 0) offset = i;
+            if(strcmp(vars[i], text) == 0) offset = i;
         }
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n"
             "push rax \n\n", offset * 32 + 32);
+        *text_ptr = 0;
     }
 }
 
-void set_variable(char* text, int text_ptr){
-    if(text_ptr > 0){
+void set_variable(char* text, int* text_ptr){
+    if(*text_ptr > 0){
+        text[*text_ptr] = '\0';
         fprintf(write_ptr,
             "pop rax \n"
             "mov [rbp-%d], rax \n\n", vars_ptr * 32 + 32);
-        text[text_ptr] = '\0';
+        text[*text_ptr] = '\0';
         vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         strcpy(vars[vars_ptr++], text);
-        text_ptr = 0;
+        *text_ptr = 0;
     }
 }
 
@@ -135,7 +138,7 @@ void read_chars(int length){
             if(length > 0 && --length == 0){
                 ungetc(cur, read_ptr);
                 store_number(num, &num_ptr);
-                recall_variable(text);
+                recall_variable(text, &text_ptr);
                 return;
             }
             else if(cur == '('){
@@ -148,17 +151,18 @@ void read_chars(int length){
             }
             else if(cur == ')'){
                 store_number(num, &num_ptr);
-                recall_variable(text);
+                fprintf(write_ptr, "; recall \n");
+                recall_variable(text, &text_ptr);
                 return;
             }
             else if(is_operator(cur)){
                 store_number(num, &num_ptr);
-                recall_variable(text);
+                recall_variable(text, &text_ptr);
                 if(handle_math_operator(cur, num, num_ptr)) return;
             }
             else if(cur == '='){
                 read_chars(0);
-                set_variable(text, text_ptr);
+                set_variable(text, &text_ptr);
                 return;
             }
             else if(strchr(";\n ", cur)){

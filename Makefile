@@ -5,18 +5,16 @@ AFLAGS = -felf64 -g
 TEST_DIR = ./test
 SRC_DIR = ./src
 BUILD_DIR = ./build
-MATH_TEST_FILES = math_1.c math_2.c math_3.c
-ANS_MATH = 19 15 66
-VARS_TEST_FILES = vars_1.c
-ANS_VARS = 9
+TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c
+ANS = 19 15 66 9 21
 
 default: test
 
 .PHONY: test
 test:
 	@i=1; \
-	for test_file in $(MATH_TEST_FILES); do \
-		expected=$$(echo $(ANS_MATH) | cut -d' ' -f$$((i))); \
+	for test_file in $(TEST_FILES); do \
+		expected=$$(echo $(ANS) | cut -d' ' -f$$((i))); \
 		$(CC) $(CFLAGS) ./$(SRC_DIR)/compile.c -o $(BUILD_DIR)/compile.out ; \
 		$(BUILD_DIR)/compile.out ../$(TEST_DIR)/"$$test_file" ; \
 		# cat $(BUILD_DIR)/main.asm ; \

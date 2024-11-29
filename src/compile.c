@@ -12,13 +12,11 @@ static const char *src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
 
 void recall_variable(char* var_name){
-    if(vars_ptr > 0){
+    if(vars_ptr > 0 && strcmp("", var_name) != 0){
         int offset;
         for(int i = 0; i < vars_ptr; ++i){
             if(strcmp(vars[i], var_name) == 0) offset = i;
         }
-        printf("recall %s\n", var_name);
-        printf("offset %d\n", offset);
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n", offset * 16 + 16,
             "push rax \n\n");
@@ -29,7 +27,7 @@ void set_variable(char* text, int text_ptr){
     if(text_ptr > 0){
         fprintf(write_ptr,
             "pop rax \n"
-            "mov [rbp-%d], rax \n\n", vars_ptr * 16 + 16);
+            "mov qword [rbp-%d], rax \n\n", vars_ptr * 16 + 16);
         text[text_ptr] = '\0';
         vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         strcpy(vars[vars_ptr++], text);
@@ -126,7 +124,7 @@ void read_chars(int length){
     int num_ptr = 0;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        fprintf(write_ptr, "; cur %s \n", &cur);
+        // (write_ptr, "; cur %s \n", &cur);
         if(is_num(cur)){
             num[num_ptr++] = cur;
         }
@@ -150,6 +148,7 @@ void read_chars(int length){
             }
             else if(cur == ')'){
                 store_number(num, num_ptr);
+                recall_variable(text);
                 return;
             }
             else if(is_operator(cur)){
@@ -163,6 +162,7 @@ void read_chars(int length){
                 return;
             }
             else if(strchr(";\n ", cur)){
+                store_number(num, num_ptr);
                 return;
             }
         }
@@ -193,7 +193,8 @@ void compile(char *input_file){
         "extern int_to_string \n" 
         "extern exit \n \n" 
         "section .text \n" 
-        "_start: \n"); 
+        "_start: \n"
+        "mov rbp, rsp \n"); 
 
     while(feof(read_ptr) == 0){
         read_chars(0);

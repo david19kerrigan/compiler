@@ -6,55 +6,30 @@ extern exit
  
 section .text 
 _start: 
-; cur a 
-; cur = 
-; cur 1 
-; cur + 
+mov rbp, rsp 
 push 1 
-; cur 2 
-; cur ; 
+push 2 
 pop rax 
 pop rbx 
 add rax, rbx 
 push rax 
 
 pop rax 
-mov [rbp-16], rax 
+mov qword [rbp-16], rax 
 
-; cur 
- 
-; cur b 
-; cur = 
-; cur 3 
-; cur * 
 push 3 
-mov rax, [rbp--588669680] 
-; cur 2 
-; cur ; 
 push 2 
-mov rax, [rbp--588651504] 
 pop rax 
 pop rbx 
 imul rax, rbx 
 push rax 
 
-; cur ; 
+push 3 
 pop rax 
-mov [rbp-32], rax 
+mov qword [rbp-32], rax 
 
-; cur 
- 
-; cur p 
-; cur r 
-; cur i 
-; cur n 
-; cur t 
-; cur ( 
-; cur a 
-; cur + 
 mov rax, [rbp-16] 
-; cur b 
-; cur ) 
+mov rax, [rbp-32] 
 pop rax 
 pop rbx 
 add rax, rbx 
@@ -64,8 +39,4 @@ pop rbx
 lea rdi, [rbx] 
 call print_int 
 
-; cur ; 
-; cur 
- 
-; cur ÿÿÿÿ 
 call exit

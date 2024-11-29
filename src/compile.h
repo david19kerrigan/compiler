@@ -1,0 +1,12 @@
+void compile(char* input_file);
+int is_num(char in);
+int is_operator(char in);
+void recall_variable(char* var_name);
+int find_variable(char* var_name);
+void mul();
+void add();
+void sub();
+void idiv();
+void read_chars(int length);
+int handle_math_operator(int cur, char* num, int num_ptr);
+void print_int();

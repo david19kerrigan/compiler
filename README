@@ -1,5 +1,6 @@
 # To Do
-- variables
+- ==, >, <, =>, <=, &&, ||
 - if/else, while
+- types: int, char, arrays, strings
 - implement minimal printf
 

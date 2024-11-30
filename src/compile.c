@@ -7,6 +7,7 @@ static FILE *read_ptr = NULL;
 static FILE *write_ptr = NULL; 
 static char **vars = NULL;
 static int vars_ptr = 0;
+static int level = 0;
 static const char *build_dir = "build/";
 static const char *src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
@@ -19,6 +20,7 @@ void recall_variable(char* text, int* text_ptr){
         for(int i = 0; i < vars_ptr; ++i){
             if(strcmp(vars[i], text) == 0) offset = i;
         }
+        // fprintf(write_ptr, "; recall |%s|\n", text);
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n"
             "push rax \n\n", offset * align + align);
@@ -29,6 +31,7 @@ void recall_variable(char* text, int* text_ptr){
 void set_variable(char* text, int* text_ptr){
     if(*text_ptr > 0){
         text[*text_ptr] = '\0';
+        // fprintf(write_ptr, "; set |%s|\n", text);
         fprintf(write_ptr,
             "pop rax \n"
             "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
@@ -126,9 +129,10 @@ void read_chars(int length){
     char *num = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     int text_ptr = 0;
     int num_ptr = 0;
+    // fprintf(write_ptr, "; level %d \n", ++level);
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        // fprintf(write_ptr, "; cur %s \n", &cur);
+        // fprintf(write_ptr, "; %s \n", &cur);
         if(is_num(cur)){
             num[num_ptr++] = cur;
         }
@@ -136,13 +140,7 @@ void read_chars(int length){
             text[text_ptr++] = cur;
         }
         else{
-            if(length > 0 && --length == 0){
-                ungetc(cur, read_ptr);
-                store_number(num, &num_ptr);
-                recall_variable(text, &text_ptr);
-                return;
-            }
-            else if(cur == '('){
+            if(cur == '('){
                 store_number(num, &num_ptr);
                 read_chars(0);
                 text_ptr = '\0';
@@ -156,23 +154,36 @@ void read_chars(int length){
                     // bleh
                 }
             }
+            if(length > 0 && --length == 0){
+                if(cur != '(') ungetc(cur, read_ptr);
+                store_number(num, &num_ptr);
+                recall_variable(text, &text_ptr);
+                // fprintf(write_ptr, "; level %d \n", --level);
+                return;
+            }
             else if(cur == ')'){
                 store_number(num, &num_ptr);
                 recall_variable(text, &text_ptr);
+                // fprintf(write_ptr, "; level %d \n", --level);
                 return;
             }
             else if(is_operator(cur)){
                 store_number(num, &num_ptr);
                 recall_variable(text, &text_ptr);
-                if(handle_math_operator(cur, num, num_ptr)) return;
+                if(handle_math_operator(cur, num, num_ptr)){ 
+                    // fprintf(write_ptr, "; level %d \n", --level);
+                    return;
+                }
             }
             else if(cur == '='){
                 read_chars(0);
                 set_variable(text, &text_ptr);
+                // fprintf(write_ptr, "; level %d \n", --level);
                 return;
             }
-            else if(strchr(";\n ", cur)){
+            else if(strchr(";", cur)){
                 store_number(num, &num_ptr);
+                // fprintf(write_ptr, "; level %d \n", --level);
                 return;
             }
         }
@@ -182,6 +193,7 @@ void read_chars(int length){
     }
     free(text);
     free(num);
+    // fprintf(write_ptr, "; level %d \n", --level);
 }
 
 void compile(char *input_file){

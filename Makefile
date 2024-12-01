@@ -7,8 +7,8 @@ SRC_DIR = ./src
 BUILD_DIR = ./build
 #TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c vars_3.c vars_4.c cond_1.c
 #ANS = 19 15 66 9 21 42 1643628 1
-TEST_FILES = cond_1.c
-ANS = 1
+TEST_FILES = math_2.c
+ANS = 15
 
 default: test
 

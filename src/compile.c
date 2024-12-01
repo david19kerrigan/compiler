@@ -15,13 +15,12 @@ static const int align = 32;
 
 void recall_variable(char* text, int* text_ptr){
     if(*text_ptr > 0 && is_letter(text[*text_ptr-1])){
+        // fprintf(write_ptr, "; recall |%s|\n", text);
         int offset = -1;
         for(int i = 0; i < vars_ptr; ++i){
             if(strcmp(vars[i], text) == 0) offset = i;
         }
         if(offset == -1) return;
-        fprintf(write_ptr, "; recall |%s|\n", text);
-        fprintf(write_ptr, "; offset |%d|\n", offset);
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n"
             "push rax \n\n", offset * align + align);
@@ -65,6 +64,7 @@ int get_type(char in){
     if(is_num(in)) return 0;
     if(is_operator(in)) return 1;
     if(is_letter(in)) return 2;
+    else return 3;
 }
 
 void print_int(){
@@ -132,18 +132,20 @@ void idiv(){
 
 int handle_function(char* text, int* text_ptr){
     if(strcmp(text, "print") == 0){
+        read_chars(0);
         print_int();
+        return 1;
     }
-    if(strcmp(text, "if") == 0){
+    else if(strcmp(text, "if") == 0){
         // bleh
     }
-    if(strcmp(text, "while") == 0){
+    else if(strcmp(text, "while") == 0){
         // bleh
     }
-    *text_ptr = 0;
+    else return 0;
 }
 
-int handle_math_operator(char* text, int* text_ptr){
+int handle_operator(char* text, int* text_ptr){
     if(strcmp(text, "-") == 0){
         read_chars(0);
         sub();
@@ -179,68 +181,54 @@ int handle_math_operator(char* text, int* text_ptr){
         and();
         return 1;
     }
+    else if(strcmp(text, "=") == 0){
+        read_chars(0);
+        set_variable(text, text_ptr);
+        return 1;
+    }
+    else return 0;
 }
 
 void read_chars(int length){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     int text_ptr = 0;
-    // fprintf(write_ptr, "; level %d \n", ++level);
+    ++level;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
         fprintf(write_ptr, "; cur : %s \n", &cur);
         fprintf(write_ptr, "; text: %s \n", text);
+        fprintf(write_ptr, "; lvl : %d \n", level);
         fprintf(write_ptr, "; -------------- \n");
         if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
             ungetc(cur, read_ptr);
             store_number(text, &text_ptr);
             recall_variable(text, &text_ptr);
-            if(handle_math_operator(text, &text_ptr)){ 
-                // fprintf(write_ptr, "; level %d \n", --level);
+            if(
+                (length > 0 && --length == 0) ||
+                handle_operator(text, &text_ptr) ||
+                handle_function(text, &text_ptr) ||
+                strcmp(text, ")") == 0 || 
+                strcmp(text, ";") == 0
+            ){
                 free(text);
+                --level;
                 return;
             }
-            else if(strcmp(text, "=") == 0){
-                read_chars(0);
-                set_variable(text, &text_ptr);
-                // fprintf(write_ptr, "; level %d \n", --level);
-                free(text);
-                return;
-            }
-            else if(strcmp(text, ";") == 0){
-                store_number(text, &text_ptr);
-                // fprintf(write_ptr, "; level %d \n", --level);
-                free(text);
-                return;
-            }
+            else text_ptr = 0;
+        }
+        else if(strcmp(text, "(") == 0){
+            read_chars(0);
         }
         else{
-            if(strcmp(text, "(") == 0){
-                read_chars(0);
-                handle_function(text, &text_ptr);
-            }
-            if(length > 0 && --length == 0){
-                // if(cur != '(') ungetc(cur, read_ptr);
-                store_number(text, &text_ptr);
-                recall_variable(text, &text_ptr);
-                // fprintf(write_ptr, "; level %d \n", --level);
-                free(text);
-                return;
-            }
-            else if(strcmp(text, ")") == 0){
-                recall_variable(text, &text_ptr);
-                // fprintf(write_ptr, "; level %d \n", --level);
-                free(text);
-                return;
-            }
+            text[text_ptr++] = cur;
+            text[text_ptr] = '\0';
         }
-        text[text_ptr++] = cur;
-        text[text_ptr] = '\0';
     }
     if(feof(read_ptr) != 0){
         store_number(text, &text_ptr);
     }
     free(text);
-    // fprintf(write_ptr, "; level %d \n", --level);
+    --level;
 }
 
 void compile(char *input_file){

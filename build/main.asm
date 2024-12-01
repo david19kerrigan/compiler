@@ -34,164 +34,105 @@ mov rbp, rsp
 ; text:  
 ; lvl : 2 
 ; -------------- 
-; cur : ( 
+; cur : 8 
 ; text: ( 
 ; lvl : 2 
 ; -------------- 
-; cur : ( 
+; cur : 8 
 ; text:  
 ; lvl : 3 
 ; -------------- 
-; cur : 8 
-; text: ( 
+; cur : < 
+; text: 8 
 ; lvl : 3 
 ; -------------- 
-; cur : 8 
-; text: ( 
+push 8 
+; cur : < 
+; text:  
 ; lvl : 3 
 ; -------------- 
-; cur : + 
+; cur : 9 
+; text: < 
+; lvl : 3 
+; -------------- 
+; cur : 9 
 ; text:  
 ; lvl : 4 
 ; -------------- 
-; cur : 4 
-; text: + 
+; cur : & 
+; text: 9 
 ; lvl : 4 
 ; -------------- 
-; cur : 4 
-; text:  
-; lvl : 5 
-; -------------- 
-; cur : ) 
-; text: 4 
-; lvl : 5 
-; -------------- 
-push 4 
-; cur : ) 
-; text: 4 
-; lvl : 5 
-; -------------- 
-; cur : * 
-; text: ) 
-; lvl : 5 
-; -------------- 
+push 9 
 pop rax 
 pop rbx 
-add rax, rbx 
+cmp rax, rbx 
 push rax 
 
-; cur : * 
-; text: ( 
+; cur : & 
+; text:  
 ; lvl : 3 
 ; -------------- 
-; cur : 3 
-; text: ³_/ApU 
-; lvl : 4 
+; cur : & 
+; text: & 
+; lvl : 3 
 ; -------------- 
-; cur : - 
-; text: 3 
-; lvl : 4 
+; cur : 1 
+; text: && 
+; lvl : 3 
 ; -------------- 
-push 3 
-; cur : - 
-; text: 3 
-; lvl : 4 
-; -------------- 
-; cur : ( 
-; text: - 
-; lvl : 4 
-; -------------- 
-; cur : ( 
-; text: ãgQW 
-; lvl : 5 
-; -------------- 
-; cur : 5 
-; text: ( 
-; lvl : 5 
-; -------------- 
-; cur : 5 
-; text: ( 
-; lvl : 5 
-; -------------- 
-; cur : - 
+; cur : 1 
 ; text:  
-; lvl : 6 
+; lvl : 4 
+; -------------- 
+; cur : < 
+; text: 1 
+; lvl : 4 
+; -------------- 
+push 1 
+; cur : < 
+; text:  
+; lvl : 4 
 ; -------------- 
 ; cur : 2 
-; text: - 
-; lvl : 6 
+; text: < 
+; lvl : 4 
 ; -------------- 
 ; cur : 2 
 ; text:  
-; lvl : 7 
+; lvl : 5 
 ; -------------- 
 ; cur : ) 
 ; text: 2 
-; lvl : 7 
+; lvl : 5 
 ; -------------- 
 push 2 
-; cur : ) 
-; text: 2 
-; lvl : 7 
-; -------------- 
-; cur : * 
-; text: ) 
-; lvl : 7 
-; -------------- 
-pop rbx 
 pop rax 
-sub rax, rbx 
+pop rbx 
+cmp rax, rbx 
 push rax 
 
-; cur : * 
-; text: ( 
-; lvl : 5 
-; -------------- 
-; cur : 2 
-; text: S_/ApU 
-; lvl : 6 
-; -------------- 
 ; cur : ) 
-; text: 2 
-; lvl : 6 
-; -------------- 
-push 2 
-; cur : ) 
-; text: 2 
-; lvl : 6 
-; -------------- 
-; cur : / 
-; text: ) 
-; lvl : 6 
-; -------------- 
-; cur : / 
-; text: ( 
-; lvl : 5 
-; -------------- 
-; cur : 2 
-; text: S_/ApU 
-; lvl : 6 
-; -------------- 
-; cur : ) 
-; text: 2 
-; lvl : 6 
-; -------------- 
-push 2 
-; cur : ) 
-; text: 2 
-; lvl : 6 
+; text:  
+; lvl : 4 
 ; -------------- 
 ; cur : ; 
 ; text: ) 
-; lvl : 6 
+; lvl : 4 
 ; -------------- 
-; cur : ÿÿÿÿ€8~uU 
+; cur : 
+ 
 ; text: ); 
-; lvl : 6 
+; lvl : 4 
 ; -------------- 
-pop rbx 
+; cur : ÿÿÿÿ xðÌ&V 
+; text: );
+ 
+; lvl : 4 
+; -------------- 
 pop rax 
-sub rax, rbx 
+pop rbx 
+and rax, rbx 
 push rax 
 
 pop rbx 

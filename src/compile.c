@@ -25,6 +25,7 @@ void recall_variable(char* text, int* text_ptr){
             "mov rax, [rbp-%d] \n"
             "push rax \n\n", offset * align + align);
         *text_ptr = 0;
+        text[0] = '\0';
     }
 }
 
@@ -38,6 +39,7 @@ void set_variable(char* text, int* text_ptr){
         vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         strcpy(vars[vars_ptr++], text);
         *text_ptr = 0;
+        text[0] = '\0';
     }
 }
 
@@ -45,6 +47,7 @@ void store_number(char* num, int* num_ptr){
     if(*num_ptr > 0 && is_num(num[*num_ptr-1])){
         fprintf(write_ptr, "push %s \n", num);
         *num_ptr = 0;
+        num[0] = '\0';
     }
 }
 
@@ -191,6 +194,7 @@ int handle_operator(char* text, int* text_ptr){
 
 void read_chars(int length){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    text[0] = '\0';
     int text_ptr = 0;
     ++level;
     while(feof(read_ptr) == 0){
@@ -199,25 +203,29 @@ void read_chars(int length){
         fprintf(write_ptr, "; text: %s \n", text);
         fprintf(write_ptr, "; lvl : %d \n", level);
         fprintf(write_ptr, "; -------------- \n");
-        if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
+        if(strcmp(text, "(") == 0){
+            ungetc(cur, read_ptr);
+            read_chars(0);
+            text_ptr = 0;
+            text[0] = '\0';
+        }
+        else if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
             ungetc(cur, read_ptr);
             store_number(text, &text_ptr);
             recall_variable(text, &text_ptr);
             if(
                 (length > 0 && --length == 0) ||
-                handle_operator(text, &text_ptr) ||
-                handle_function(text, &text_ptr) ||
                 strcmp(text, ")") == 0 || 
-                strcmp(text, ";") == 0
+                strcmp(text, ";") == 0 ||
+                handle_operator(text, &text_ptr) ||
+                handle_function(text, &text_ptr)
             ){
                 free(text);
                 --level;
                 return;
             }
-            else text_ptr = 0;
-        }
-        else if(strcmp(text, "(") == 0){
-            read_chars(0);
+            text_ptr = 0;
+            text[0] = '\0';
         }
         else{
             text[text_ptr++] = cur;

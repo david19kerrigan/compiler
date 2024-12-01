@@ -6,123 +6,99 @@ extern exit
 section .text 
 _start: 
 mov rbp, rsp 
-push 1 
-push 2 
+; cur : p 
+; text:  
+; -------------- 
+; cur : r 
+; text: p 
+; -------------- 
+; cur : i 
+; text: pr 
+; -------------- 
+; cur : n 
+; text: pri 
+; -------------- 
+; cur : t 
+; text: prin 
+; -------------- 
+; cur : ( 
+; text: print 
+; -------------- 
+; cur : ( 
+; text: ï¡ÆW 
+; -------------- 
+; cur : 8 
+; text: ( 
+; -------------- 
+; cur : < 
+; text:  
+; -------------- 
+; cur : 9 
+; text: < 
+; -------------- 
+; cur : 9 
+; text:  
+; -------------- 
 pop rax 
 pop rbx 
-add rax, rbx 
+cmp rax, rbx 
 push rax 
 
-pop rax 
-mov [rbp-32], rax 
-
-push 3 
-push 2 
-mov rax, [rbp-32] 
-push rax 
-
-pop rax 
-pop rbx 
-add rax, rbx 
-push rax 
-
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-push 5 
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-pop rax 
-mov [rbp-64], rax 
-
+; cur : & 
+; text: <9 
+; -------------- 
+push <9 
+; cur : & 
+; text: 8 
+; -------------- 
 push 8 
-push 5 
-mov rax, [rbp-32] 
-push rax 
-
-pop rbx 
-pop rax 
-sub rax, rbx 
-push rax 
-
-mov rax, [rbp-64] 
-push rax 
-
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-push 2 
+; cur : & 
+; text: /¦Ù=yU 
+; -------------- 
+; cur : & 
+; text: & 
+; -------------- 
+; cur : 1 
+; text: && 
+; -------------- 
+; cur : 1 
+; text:  
+; -------------- 
+; cur : < 
+; text: 1 
+; -------------- 
+push 1 
 pop rax 
 pop rbx 
-add rax, rbx 
+and rax, rbx 
 push rax 
 
+; cur : < 
+; text: /¦Ù=yU 
+; -------------- 
+; cur : 2 
+; text: < 
+; -------------- 
+; cur : 2 
+; text:  
+; -------------- 
 pop rax 
 pop rbx 
-imul rax, rbx 
+cmp rax, rbx 
 push rax 
 
-push 2 
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-pop rax 
-mov [rbp-96], rax 
-
-mov rax, [rbp-32] 
-push rax 
-
-push 2 
-mov rax, [rbp-64] 
-push rax 
-
-push 3 
-mov rax, [rbp-96] 
-push rax 
-
-pop rax 
-pop rbx 
-add rax, rbx 
-push rax 
-
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-push 3 
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-pop rax 
-pop rbx 
-add rax, rbx 
-push rax 
-
-pop rax 
-pop rbx 
-imul rax, rbx 
-push rax 
-
-push 3 
-pop rbx 
-pop rax 
-sub rax, rbx 
-push rax 
-
-pop rbx 
-lea rdi, [rbx] 
-call print_int 
-
+; cur : ) 
+; text: <2 
+; -------------- 
+; cur : ; 
+; text: <2) 
+; -------------- 
+; cur : 
+ 
+; text: <2); 
+; -------------- 
+; cur : ÿÿÿÿ€÷j|U 
+; text: <2);
+ 
+; -------------- 
 call exit

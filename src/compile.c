@@ -139,6 +139,13 @@ int handle_function(char* text, int* text_ptr){
         print_int();
         return 1;
     }
+    else if(strcmp(text, "int") == 0){
+        char* var_name = read_chars(1);
+        read_chars(1);
+        read_chars(0);
+        return 0;
+        // bleh
+    }
     else if(strcmp(text, "if") == 0){
         // bleh
     }

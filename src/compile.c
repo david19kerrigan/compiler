@@ -29,18 +29,13 @@ void recall_variable(char* text, int* text_ptr){
     }
 }
 
-void set_variable(char* text, int* text_ptr){
-    if(*text_ptr > 0){
-        // fprintf(write_ptr, "; set |%s|\n", text);
-        fprintf(write_ptr,
-            "pop rax \n"
-            "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
-        text[*text_ptr] = '\0';
-        vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-        strcpy(vars[vars_ptr++], text);
-        *text_ptr = 0;
-        text[0] = '\0';
-    }
+void set_variable(char* text){
+    // fprintf(write_ptr, "; set |%s|\n", text);
+    fprintf(write_ptr,
+        "pop rax \n"
+        "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
+    vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars[vars_ptr++], text);
 }
 
 void store_number(char* num, int* num_ptr){
@@ -65,9 +60,12 @@ int is_letter(char in){
 
 int get_type(char in){
     if(is_num(in)) return 0;
-    if(is_operator(in)) return 1;
-    if(is_letter(in)) return 2;
-    else return 3;
+    else if(is_operator(in)) return 1;
+    else if(is_letter(in)) return 2;
+    else if(in == ';') return 3;
+    else if(in == '\n') return 4;
+    else if(in == ' ') return 5;
+    else return 6;
 }
 
 void print_int(){
@@ -135,84 +133,80 @@ void idiv(){
 
 int handle_function(char* text, int* text_ptr){
     if(strcmp(text, "print") == 0){
-        read_chars(0);
+        free(read_chars(0));
         print_int();
         return 1;
     }
     else if(strcmp(text, "int") == 0){
+        free(read_chars(1));
         char* var_name = read_chars(1);
-        read_chars(1);
-        read_chars(0);
+        free(read_chars(1));
+        free(read_chars(0));
+        set_variable(var_name);
+        free(var_name);
         return 0;
-        // bleh
     }
     else if(strcmp(text, "if") == 0){
-        // bleh
     }
     else if(strcmp(text, "while") == 0){
-        // bleh
     }
     else return 0;
 }
 
 int handle_operator(char* text, int* text_ptr){
     if(strcmp(text, "-") == 0){
-        read_chars(0);
+        free(read_chars(0));
         sub();
         return 1;
     }
     else if(strcmp(text, "+") == 0){
-        read_chars(0);
+        free(read_chars(0));
         add();
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        read_chars(1);
+        fprintf(write_ptr, "; HERE\n");
+        free(read_chars(1));
         mul();
         return 0;
     }
     else if(strcmp(text, "/") == 0){
-        read_chars(1);
+        free(read_chars(1));
         idiv();
         return 0;
     }
     else if(strcmp(">", text) == 0 || strcmp("<", text) == 0 || strcmp(text, "==") == 0 || strcmp(text, "!=") == 0){
-        read_chars(1);
+        free(read_chars(1));
         cmp();
         return 0;
     }
     else if(strcmp(text, "||") == 0){
-        read_chars(0);
+        free(read_chars(0));
         or();
         return 1;
     }
     else if(strcmp(text, "&&") == 0){
-        read_chars(0);
+        free(read_chars(0));
         and();
-        return 1;
-    }
-    else if(strcmp(text, "=") == 0){
-        read_chars(0);
-        set_variable(text, text_ptr);
         return 1;
     }
     else return 0;
 }
 
-void read_chars(int length){
+char* read_chars(int length){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
     ++level;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        fprintf(write_ptr, "; cur : %s \n", &cur);
-        fprintf(write_ptr, "; text: %s \n", text);
-        fprintf(write_ptr, "; lvl : %d \n", level);
-        fprintf(write_ptr, "; -------------- \n");
+        //fprintf(write_ptr, "; cur : %s \n", &cur);
+        //fprintf(write_ptr, "; text: |%s| \n", text);
+        //fprintf(write_ptr, ";[lvl : %d] \n", level);
+        //fprintf(write_ptr, "; -------------- \n");
         if(strcmp(text, "(") == 0){
             ungetc(cur, read_ptr);
-            read_chars(0);
+            free(read_chars(0));
             text_ptr = 0;
             text[0] = '\0';
         }
@@ -224,12 +218,13 @@ void read_chars(int length){
                 (length > 0 && --length == 0) ||
                 strcmp(text, ")") == 0 || 
                 strcmp(text, ";") == 0 ||
+                strcmp(text, " ") == 0 ||
+                strcmp(text, "\n") == 0 ||
                 handle_operator(text, &text_ptr) ||
                 handle_function(text, &text_ptr)
             ){
-                free(text);
                 --level;
-                return;
+                return text;
             }
             text_ptr = 0;
             text[0] = '\0';
@@ -242,8 +237,8 @@ void read_chars(int length){
     if(feof(read_ptr) != 0){
         store_number(text, &text_ptr);
     }
-    free(text);
     --level;
+    return text;
 }
 
 void compile(char *input_file){
@@ -268,7 +263,7 @@ void compile(char *input_file){
         "mov rbp, rsp \n"); 
 
     while(feof(read_ptr) == 0){
-        read_chars(0);
+        free(read_chars(0));
     }
 
     fprintf(write_ptr, "call exit\n");

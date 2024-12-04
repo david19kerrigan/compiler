@@ -11,20 +11,27 @@
 !_TAG_PROGRAM_VERSION	5.9.0	//
 AC	Makefile	/^AC = nasm$/;"	m
 AFLAGS	Makefile	/^AFLAGS = -felf64 -g$/;"	m
-ANS	Makefile	/^ANS = 19 15 66 9 21 42 1643628$/;"	m
+ANS	Makefile	/^ANS = 1643628$/;"	m
 BUILD_DIR	Makefile	/^BUILD_DIR = .\/build$/;"	m
 CC	Makefile	/^CC = gcc$/;"	m
 CFLAGS	Makefile	/^CFLAGS = -g -I.\/src -I\/usr\/include$/;"	m
 DEFAULT_SIZE	src/compile.c	/^static const int DEFAULT_SIZE = 32;$/;"	v	typeref:typename:const int	file:
 SRC_DIR	Makefile	/^SRC_DIR = .\/src$/;"	m
 TEST_DIR	Makefile	/^TEST_DIR = .\/test$/;"	m
-TEST_FILES	Makefile	/^TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c vars_3.c vars_4.c$/;"	m
+TEST_FILES	Makefile	/^TEST_FILES = vars_4.c$/;"	m
 _start	build/main.asm	/^_start: $/;"	l
+a	test/vars_2.c	/^int a=1+2;$/;"	v	typeref:typename:int
+a	test/vars_3.c	/^int a=1+2;$/;"	v	typeref:typename:int
+a	test/vars_4.c	/^int a=1+2;$/;"	v	typeref:typename:int
 add	build/main.asm	/^add rax, rbx $/;"	l
 add	src/compile.c	/^void add(){$/;"	f	typeref:typename:void
 align	src/compile.c	/^static const int align = 32;$/;"	v	typeref:typename:const int	file:
 and	src/compile.c	/^void and(){$/;"	f	typeref:typename:void
+b	test/vars_2.c	/^int b=3*2;$/;"	v	typeref:typename:int
+b	test/vars_3.c	/^int b=3*2+a*5;$/;"	v	typeref:typename:int
+b	test/vars_4.c	/^int b=3*(2+a)*5;$/;"	v	typeref:typename:int
 build_dir	src/compile.c	/^static const char *build_dir = "build\/";$/;"	v	typeref:typename:const char *	file:
+c	test/vars_4.c	/^int c=8*((5-a)*b+2)*2;$/;"	v	typeref:typename:int
 call	build/main.asm	/^call exit$/;"	l
 call	build/main.asm	/^call print_int $/;"	l
 clean	Makefile	/^clean:$/;"	t
@@ -39,7 +46,8 @@ get_type	src/compile.c	/^int get_type(char in){$/;"	f	typeref:typename:int
 global	build/main.asm	/^global _start $/;"	l
 global	src/lib.asm	/^global exit$/;"	l
 global	src/lib.asm	/^global print_int$/;"	l
-handle_math_operator	src/compile.c	/^int handle_math_operator(int cur){$/;"	f	typeref:typename:int
+handle_function	src/compile.c	/^int handle_function(char* text, int* text_ptr){$/;"	f	typeref:typename:int
+handle_operator	src/compile.c	/^int handle_operator(char* text, int* text_ptr){$/;"	f	typeref:typename:int
 idiv	src/compile.c	/^void idiv(){$/;"	f	typeref:typename:void
 imul	build/main.asm	/^imul rax, rbx $/;"	l
 int_to_string	src/lib.asm	/^.int_to_string:$/;"	l
@@ -68,10 +76,10 @@ push	build/main.asm	/^push 3 $/;"	l
 push	build/main.asm	/^push 5 $/;"	l
 push	build/main.asm	/^push 8 $/;"	l
 push	build/main.asm	/^push rax $/;"	l
-read_chars	src/compile.c	/^void read_chars(int length){$/;"	f	typeref:typename:void
+read_chars	src/compile.c	/^char* read_chars(int length){$/;"	f	typeref:typename:char *
 read_ptr	src/compile.c	/^static FILE *read_ptr = NULL;$/;"	v	typeref:typename:FILE *	file:
 recall_variable	src/compile.c	/^void recall_variable(char* text, int* text_ptr){$/;"	f	typeref:typename:void
-set_variable	src/compile.c	/^void set_variable(char* text, int* text_ptr){$/;"	f	typeref:typename:void
+set_variable	src/compile.c	/^void set_variable(char* text){$/;"	f	typeref:typename:void
 src_dir	src/compile.c	/^static const char *src_dir = "src\/";$/;"	v	typeref:typename:const char *	file:
 store_number	src/compile.c	/^void store_number(char* num, int* num_ptr){$/;"	f	typeref:typename:void
 sub	build/main.asm	/^sub rax, rbx $/;"	l

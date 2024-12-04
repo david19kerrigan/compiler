@@ -165,7 +165,6 @@ int handle_operator(char* text, int* text_ptr){
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        fprintf(write_ptr, "; HERE\n");
         free(read_chars(1));
         mul();
         return 0;
@@ -209,6 +208,10 @@ char* read_chars(int length){
             free(read_chars(0));
             text_ptr = 0;
             text[0] = '\0';
+            if(length > 0 && --length == 0){
+                --level;
+                return text;
+            }
         }
         else if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
             ungetc(cur, read_ptr);

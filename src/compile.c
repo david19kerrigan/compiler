@@ -91,11 +91,39 @@ void and(){
         "push rax \n\n");
 }
 
-void cmp(){
+void greater(){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
         "cmp rax, rbx \n"
+        "setg al \n"
+        "push rax \n\n");
+}
+
+void less(){
+    fprintf(write_ptr, 
+        "pop rax \n"
+        "pop rbx \n"
+        "cmp rax, rbx \n"
+        "setl al \n"
+        "push rax \n\n");
+}
+
+void unequal(){
+    fprintf(write_ptr, 
+        "pop rax \n"
+        "pop rbx \n"
+        "cmp rax, rbx \n"
+        "setz al \n"
+        "push rax \n\n");
+}
+
+void equal(){
+    fprintf(write_ptr, 
+        "pop rax \n"
+        "pop rbx \n"
+        "cmp rax, rbx \n"
+        "setnz al \n"
         "push rax \n\n");
 }
 
@@ -174,9 +202,24 @@ int handle_operator(char* text, int* text_ptr){
         idiv();
         return 0;
     }
-    else if(strcmp(">", text) == 0 || strcmp("<", text) == 0 || strcmp(text, "==") == 0 || strcmp(text, "!=") == 0){
+    else if(strcmp(">", text) == 0){
         free(read_chars(1));
-        cmp();
+        greater();
+        return 0;
+    }
+    else if(strcmp("<", text) == 0){
+        free(read_chars(1));
+        greater();
+        return 0;
+    }
+    else if(strcmp("==", text) == 0){
+        free(read_chars(1));
+        equal();
+        return 0;
+    }
+    else if(strcmp("!=", text) == 0){
+        free(read_chars(1));
+        equal();
         return 0;
     }
     else if(strcmp(text, "||") == 0){

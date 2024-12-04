@@ -159,83 +159,85 @@ void idiv(){
         "push rax \n\n");
 }
 
-int handle_function(char* text, int* text_ptr){
+int handle_function(char* text, int* text_ptr, char* match){
     if(strcmp(text, "print") == 0){
-        free(read_chars(0));
+        free(read_chars(0, match));
         print_int();
         return 1;
     }
     else if(strcmp(text, "int") == 0){
-        free(read_chars(1));
-        char* var_name = read_chars(1);
-        free(read_chars(1));
-        free(read_chars(0));
+        free(read_chars(1, "#"));
+        char* var_name = read_chars(1, "#");
+        free(read_chars(1, "#"));
+        free(read_chars(0, match));
         set_variable(var_name);
         free(var_name);
         return 0;
     }
     else if(strcmp(text, "if") == 0){
     }
+    else if(strcmp(text, "else") == 0){
+    }
     else if(strcmp(text, "while") == 0){
     }
     else return 0;
 }
 
-int handle_operator(char* text, int* text_ptr){
+int handle_operator(char* text, int* text_ptr, char* match){
     if(strcmp(text, "-") == 0){
-        free(read_chars(0));
+        free(read_chars(0, match));
         sub();
         return 1;
     }
     else if(strcmp(text, "+") == 0){
-        free(read_chars(0));
+        free(read_chars(0, match));
         add();
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        free(read_chars(1));
+        free(read_chars(1, match));
         mul();
         return 0;
     }
     else if(strcmp(text, "/") == 0){
-        free(read_chars(1));
+        free(read_chars(1, match));
         idiv();
         return 0;
     }
     else if(strcmp(text, ">") == 0){
-        free(read_chars(1));
+        free(read_chars(1, match));
         greater();
         return 0;
     }
     else if(strcmp(text, "<") == 0){
-        free(read_chars(1));
+        free(read_chars(1, match));
         greater();
         return 0;
     }
     else if(strcmp(text, "==") == 0){
-        free(read_chars(1));
+        free(read_chars(1, match));
         equal();
         return 0;
     }
     else if(strcmp(text, "!=") == 0){
-        free(read_chars(1));
+        free(read_chars(1, match));
         equal();
         return 0;
     }
     else if(strcmp(text, "||") == 0){
-        free(read_chars(0));
+        free(read_chars(0, match));
         or();
         return 1;
     }
     else if(strcmp(text, "&&") == 0){
-        free(read_chars(0));
+        free(read_chars(0, match));
         and();
         return 1;
     }
     else return 0;
 }
 
-char* read_chars(int length){
+char* read_chars(int length, char* match){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
@@ -243,12 +245,18 @@ char* read_chars(int length){
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
         //fprintf(write_ptr, "; cur : %s \n", &cur);
-        //fprintf(write_ptr, "; text: |%s| \n", text);
-        //fprintf(write_ptr, ";[lvl : %d] \n", level);
+        //fprintf(write_ptr, "; text: %s \n", text);
+        //fprintf(write_ptr, "; lvl :[%d] \n", level);
+        //fprintf(write_ptr, "; %s == %s\n", text, match);
         //fprintf(write_ptr, "; -------------- \n");
-        if(strcmp(text, "(") == 0){
+        if(strcmp(text, match) == 0){
             ungetc(cur, read_ptr);
-            free(read_chars(0));
+            --level;
+            return text;
+        }
+        else if(strcmp(text, "(") == 0){
+            ungetc(cur, read_ptr);
+            free(read_chars(0, ")"));
             if(length > 0 && --length == 0){
                 --level;
                 return text;
@@ -262,12 +270,8 @@ char* read_chars(int length){
             recall_variable(text, &text_ptr);
             if(
                 (length > 0 && --length == 0) ||
-                strcmp(text, ")") == 0 || 
-                strcmp(text, ";") == 0 ||
-                strcmp(text, " ") == 0 ||
-                strcmp(text, "\n") == 0 ||
-                handle_operator(text, &text_ptr) ||
-                handle_function(text, &text_ptr)
+                handle_operator(text, &text_ptr, match) ||
+                handle_function(text, &text_ptr, match)
             ){
                 --level;
                 return text;
@@ -309,7 +313,7 @@ void compile(char *input_file){
         "mov rbp, rsp \n"); 
 
     while(feof(read_ptr) == 0){
-        free(read_chars(0));
+        free(read_chars(0, ";"));
     }
 
     fprintf(write_ptr, "call exit\n");

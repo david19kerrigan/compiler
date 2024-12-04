@@ -1,6 +1,6 @@
 # To Do
-- ==, >, <, =>, <=, &&, ||
 - if/else, while
-- types: int, char, arrays, strings
+- array types, strings
 - implement minimal printf
+- malloc, realloc
 

@@ -114,7 +114,7 @@ void unequal(){
         "pop rax \n"
         "pop rbx \n"
         "cmp rax, rbx \n"
-        "setz al \n"
+        "setnz al \n"
         "push rax \n\n");
 }
 
@@ -123,7 +123,7 @@ void equal(){
         "pop rax \n"
         "pop rbx \n"
         "cmp rax, rbx \n"
-        "setnz al \n"
+        "setz al \n"
         "push rax \n\n");
 }
 

@@ -5,8 +5,8 @@ AFLAGS = -felf64 -g
 TEST_DIR = ./test
 SRC_DIR = ./src
 BUILD_DIR = ./build
-TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c vars_3.c vars_4.c bool_1.c
-ANS = 19 15 66 9 21 42 1643628 1
+TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c vars_3.c vars_4.c bool_1.c bool_2.c
+ANS = 19 15 66 9 21 42 1643628 1 0
 
 default: test
 

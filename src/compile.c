@@ -202,22 +202,22 @@ int handle_operator(char* text, int* text_ptr){
         idiv();
         return 0;
     }
-    else if(strcmp(">", text) == 0){
+    else if(strcmp(text, ">") == 0){
         free(read_chars(1));
         greater();
         return 0;
     }
-    else if(strcmp("<", text) == 0){
+    else if(strcmp(text, "<") == 0){
         free(read_chars(1));
         greater();
         return 0;
     }
-    else if(strcmp("==", text) == 0){
+    else if(strcmp(text, "==") == 0){
         free(read_chars(1));
         equal();
         return 0;
     }
-    else if(strcmp("!=", text) == 0){
+    else if(strcmp(text, "!=") == 0){
         free(read_chars(1));
         equal();
         return 0;

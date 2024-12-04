@@ -206,12 +206,12 @@ char* read_chars(int length){
         if(strcmp(text, "(") == 0){
             ungetc(cur, read_ptr);
             free(read_chars(0));
-            text_ptr = 0;
-            text[0] = '\0';
             if(length > 0 && --length == 0){
                 --level;
                 return text;
             }
+            text_ptr = 0;
+            text[0] = '\0';
         }
         else if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
             ungetc(cur, read_ptr);

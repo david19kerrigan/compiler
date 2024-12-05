@@ -75,6 +75,13 @@ void print_int(){
         "call print_int \n\n");
 }
 
+void cond_if(){
+    fprintf(write_ptr, 
+        "pop rax \n"
+        "jnz rax cond_if \n"
+        "cond_if: \n\n");
+}
+
 void or(){
     fprintf(write_ptr, 
         "pop rax \n"
@@ -166,15 +173,26 @@ int handle_function(char* text, int* text_ptr, char* match){
         return 1;
     }
     else if(strcmp(text, "int") == 0){
-        free(read_chars(1, "#"));
+        free(read_chars(1, "#")); // space
         char* var_name = read_chars(1, "#");
-        free(read_chars(1, "#"));
+        free(read_chars(1, "#")); // =
         free(read_chars(0, match));
         set_variable(var_name);
         free(var_name);
         return 0;
     }
     else if(strcmp(text, "if") == 0){
+        free(read_chars(1, "#")); // (
+        free(read_chars(0, ")"));
+        cond_if();
+        free(read_chars(1, "#")); // {
+        char *text = read_chars(0, "}");
+        while(strcmp(text, "}") != 0){
+            free(text);
+            char *text = read_chars(0, "}");
+        }
+        free(text);
+        fprintf(write_ptr, "ret \n");
     }
     else if(strcmp(text, "else") == 0){
     }

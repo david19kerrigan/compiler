@@ -3,17 +3,24 @@
 #include <stdlib.h>
 #include <compile.h>
 
-static FILE *read_ptr = NULL;
-static FILE *write_ptr = NULL; 
-static char **vars = NULL;
+static FILE* read_ptr = NULL;
+static FILE* write_ptr_main = NULL; 
+static FILE*write_ptr_suffix = NULL; 
+static char** vars = NULL;
 static int vars_ptr = 0;
 static int level = 0;
-static const char *build_dir = "build/";
-static const char *src_dir = "src/";
+static int counter = 0;
+static const char* build_dir = "build/";
+static const char* src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
 static const int align = 32;
 
-void recall_variable(char* text, int* text_ptr){
+void match_char(char* text, FILE* write_ptr){
+    if(strcmp(text, "(") == 0) free(read_chars(0, ")", write_ptr));
+    else if(strcmp(text, "{") == 0) free(read_chars(0, "}", write_ptr));
+}
+
+void recall_variable(char* text, int* text_ptr, FILE* write_ptr){
     if(*text_ptr > 0 && is_letter(text[*text_ptr-1])){
         // fprintf(write_ptr, "; recall |%s|\n", text);
         int offset = -1;
@@ -29,7 +36,7 @@ void recall_variable(char* text, int* text_ptr){
     }
 }
 
-void set_variable(char* text){
+void set_variable(char* text, FILE* write_ptr){
     // fprintf(write_ptr, "; set |%s|\n", text);
     fprintf(write_ptr,
         "pop rax \n"
@@ -38,7 +45,7 @@ void set_variable(char* text){
     strcpy(vars[vars_ptr++], text);
 }
 
-void store_number(char* num, int* num_ptr){
+void store_number(char* num, int* num_ptr, FILE* write_ptr){
     if(*num_ptr > 0 && is_num(num[*num_ptr-1])){
         fprintf(write_ptr, "push %s \n", num);
         *num_ptr = 0;
@@ -68,21 +75,22 @@ int get_type(char in){
     else return 6;
 }
 
-void print_int(){
+void print_int(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rbx \n"
         "lea rdi, [rbx] \n"
         "call print_int \n\n");
 }
 
-void cond_if(){
+void cond_if(FILE* write_ptr, int idem_key){
     fprintf(write_ptr, 
         "pop rax \n"
-        "jnz rax cond_if \n"
-        "cond_if: \n\n");
+        "cmp rax, 1 \n"
+        "je cond_if%d \n"
+        "block%d:\n", idem_key, idem_key);
 }
 
-void or(){
+void or(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -90,7 +98,7 @@ void or(){
         "push rax \n\n");
 }
 
-void and(){
+void and(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -98,7 +106,7 @@ void and(){
         "push rax \n\n");
 }
 
-void greater(){
+void greater(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -107,7 +115,7 @@ void greater(){
         "push rax \n\n");
 }
 
-void less(){
+void less(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -116,7 +124,7 @@ void less(){
         "push rax \n\n");
 }
 
-void unequal(){
+void unequal(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -125,7 +133,7 @@ void unequal(){
         "push rax \n\n");
 }
 
-void equal(){
+void equal(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -134,7 +142,7 @@ void equal(){
         "push rax \n\n");
 }
 
-void add(){
+void add(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -142,7 +150,7 @@ void add(){
         "push rax \n\n");
 }
 
-void sub(){
+void sub(FILE* write_ptr){
     fprintf(write_ptr, 
         "pop rbx \n"
         "pop rax \n"
@@ -150,7 +158,7 @@ void sub(){
         "push rax \n\n");
 }
 
-void mul(){
+void mul(FILE* write_ptr){
     fprintf(write_ptr,
         "pop rax \n"
         "pop rbx \n"
@@ -158,7 +166,7 @@ void mul(){
         "push rax \n\n");
 }
 
-void idiv(){
+void idiv(FILE* write_ptr){
     fprintf(write_ptr,
         "pop rbx \n"
         "pop rax \n"
@@ -166,96 +174,97 @@ void idiv(){
         "push rax \n\n");
 }
 
-int handle_function(char* text, int* text_ptr, char* match){
+int handle_function(char* text, int* text_ptr, char* match, FILE* write_ptr, int idem_key){
     if(strcmp(text, "print") == 0){
-        free(read_chars(0, match));
-        print_int();
+        free(read_chars(0, match, write_ptr));
+        print_int(write_ptr);
         return 1;
     }
     else if(strcmp(text, "int") == 0){
-        free(read_chars(1, "#")); // space
-        char* var_name = read_chars(1, "#");
-        free(read_chars(1, "#")); // =
-        free(read_chars(0, match));
-        set_variable(var_name);
+        free(read_chars(1, "#", write_ptr)); // space
+        char* var_name = read_chars(1, "#", write_ptr);
+        free(read_chars(1, "#", write_ptr)); // =
+        free(read_chars(0, match, write_ptr));
+        set_variable(var_name, write_ptr);
         free(var_name);
         return 0;
     }
     else if(strcmp(text, "if") == 0){
-        free(read_chars(1, "#")); // (
-        free(read_chars(0, ")"));
-        cond_if();
-        free(read_chars(1, "#")); // {
-        char *text = read_chars(0, "}");
-        while(strcmp(text, "}") != 0){
-            free(text);
-            char *text = read_chars(0, "}");
-        }
-        free(text);
-        fprintf(write_ptr, "ret \n");
+        free(read_chars(1, "#", write_ptr)); // (
+        cond_if(write_ptr, idem_key);
+        fprintf(write_ptr_main, "cond_if%d: \n", idem_key);
+        free(read_chars(1, "#", write_ptr_suffix)); // {
+        fprintf(write_ptr_main, "jmp block%d \n", idem_key);
+        return 1;
     }
     else if(strcmp(text, "else") == 0){
     }
     else if(strcmp(text, "while") == 0){
+        //free(read_chars(1, "#", write_ptr)); // (
+        //cond_if(write_ptr, counter++);
+        //fprintf(write_ptr_suffix, "cond_if: \n");
+        //free(read_chars(1, "#", write_ptr_suffix)); // {
+        //fprintf(write_ptr_suffix, "jmp block%d \n", counter++);
+        //return 1;
     }
     else return 0;
 }
 
-int handle_operator(char* text, int* text_ptr, char* match){
+int handle_operator(char* text, int* text_ptr, char* match, FILE* write_ptr){
     if(strcmp(text, "-") == 0){
-        free(read_chars(0, match));
-        sub();
+        free(read_chars(0, match, write_ptr));
+        sub(write_ptr);
         return 1;
     }
     else if(strcmp(text, "+") == 0){
-        free(read_chars(0, match));
-        add();
+        free(read_chars(0, match, write_ptr));
+        add(write_ptr);
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        free(read_chars(1, match));
-        mul();
+        free(read_chars(1, match, write_ptr));
+        mul(write_ptr);
         return 0;
     }
     else if(strcmp(text, "/") == 0){
-        free(read_chars(1, match));
-        idiv();
+        free(read_chars(1, match, write_ptr));
+        idiv(write_ptr);
         return 0;
     }
     else if(strcmp(text, ">") == 0){
-        free(read_chars(1, match));
-        greater();
+        free(read_chars(1, match, write_ptr));
+        greater(write_ptr);
         return 0;
     }
     else if(strcmp(text, "<") == 0){
-        free(read_chars(1, match));
-        greater();
+        free(read_chars(1, match, write_ptr));
+        greater(write_ptr);
         return 0;
     }
     else if(strcmp(text, "==") == 0){
-        free(read_chars(1, match));
-        equal();
+        free(read_chars(1, match, write_ptr));
+        equal(write_ptr);
         return 0;
     }
     else if(strcmp(text, "!=") == 0){
-        free(read_chars(1, match));
-        equal();
+        free(read_chars(1, match, write_ptr));
+        equal(write_ptr);
         return 0;
     }
     else if(strcmp(text, "||") == 0){
-        free(read_chars(0, match));
-        or();
+        free(read_chars(0, match, write_ptr));
+        or(write_ptr);
         return 1;
     }
     else if(strcmp(text, "&&") == 0){
-        free(read_chars(0, match));
-        and();
+        free(read_chars(0, match, write_ptr));
+        and(write_ptr);
         return 1;
     }
     else return 0;
 }
 
-char* read_chars(int length, char* match){
+char* read_chars(int length, char* match, FILE* write_ptr){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
@@ -272,9 +281,9 @@ char* read_chars(int length, char* match){
             --level;
             return text;
         }
-        else if(strcmp(text, "(") == 0){
+        else if(text[0] && strchr("({", text[0]) != NULL){
             ungetc(cur, read_ptr);
-            free(read_chars(0, ")"));
+            match_char(text, write_ptr);
             if(length > 0 && --length == 0){
                 --level;
                 return text;
@@ -284,12 +293,12 @@ char* read_chars(int length, char* match){
         }
         else if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
             ungetc(cur, read_ptr);
-            store_number(text, &text_ptr);
-            recall_variable(text, &text_ptr);
+            store_number(text, &text_ptr, write_ptr);
+            recall_variable(text, &text_ptr, write_ptr);
             if(
                 (length > 0 && --length == 0) ||
-                handle_operator(text, &text_ptr, match) ||
-                handle_function(text, &text_ptr, match)
+                handle_operator(text, &text_ptr, match, write_ptr) ||
+                handle_function(text, &text_ptr, match, write_ptr, counter++)
             ){
                 --level;
                 return text;
@@ -303,25 +312,27 @@ char* read_chars(int length, char* match){
         }
     }
     if(feof(read_ptr) != 0){
-        store_number(text, &text_ptr);
+        store_number(text, &text_ptr, write_ptr);
     }
-    --level;
-    return text;
 }
 
 void compile(char *input_file){
     char read_path[DEFAULT_SIZE];
-    char write_path[DEFAULT_SIZE];
+    char write_path_main[DEFAULT_SIZE];
+    char write_path_suffix[DEFAULT_SIZE];
     strcpy(read_path, src_dir);
-    strcpy(write_path, build_dir);
+    strcpy(write_path_main, build_dir);
+    strcpy(write_path_suffix, build_dir);
     strcat(read_path, input_file);
-    strcat(write_path, "main.asm");
+    strcat(write_path_main, "main.asm");
+    strcat(write_path_suffix, "main_suffix.asm");
 
     read_ptr = fopen(read_path, "r");
-    write_ptr = fopen(write_path, "w");
+    write_ptr_main = fopen(write_path_main, "w");
+    write_ptr_suffix = fopen(write_path_suffix, "w");
     vars = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
 
-    fprintf(write_ptr,
+    fprintf(write_ptr_main,
         "global _start \n" 
         "extern print_int \n" 
         "extern int_to_string \n" 
@@ -331,10 +342,10 @@ void compile(char *input_file){
         "mov rbp, rsp \n"); 
 
     while(feof(read_ptr) == 0){
-        free(read_chars(0, ";"));
+        free(read_chars(0, ";", write_ptr_main));
     }
 
-    fprintf(write_ptr, "call exit\n");
+    fprintf(write_ptr_main, "call exit\n");
 
     for(int i = 0; i < vars_ptr; ++i){
         free(vars[i]);
@@ -342,7 +353,8 @@ void compile(char *input_file){
     free(vars);
 
     pclose(read_ptr);
-    fclose(write_ptr);
+    fclose(write_ptr_main);
+    fclose(write_ptr_suffix);
 }
 
 int main(int argc, char* argv[]){

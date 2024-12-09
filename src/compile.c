@@ -87,7 +87,7 @@ void cond_if(FILE* write_ptr, int idem_key){
         "pop rax \n"
         "cmp rax, 1 \n"
         "je cond_if%d \n"
-        "block%d:\n", idem_key, idem_key);
+        "jne block%d \n\n", idem_key, idem_key);
 }
 
 void or(FILE* write_ptr){
@@ -192,9 +192,10 @@ int handle_function(char* text, int* text_ptr, char* match, FILE* write_ptr, int
     else if(strcmp(text, "if") == 0){
         free(read_chars(1, "#", write_ptr)); // (
         cond_if(write_ptr, idem_key);
-        fprintf(write_ptr_main, "cond_if%d: \n", idem_key);
-        free(read_chars(1, "#", write_ptr_suffix)); // {
-        fprintf(write_ptr_main, "jmp block%d \n", idem_key);
+        fprintf(write_ptr, "cond_if%d: \n", idem_key);
+        free(read_chars(1, "#", write_ptr)); // {
+        fprintf(write_ptr, "jmp block%d \n", idem_key);
+        fprintf(write_ptr, "block%d: \n", idem_key);
         return 1;
     }
     else if(strcmp(text, "else") == 0){

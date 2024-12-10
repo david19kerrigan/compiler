@@ -7,7 +7,7 @@ void mul();
 void add();
 void sub();
 void idiv();
-char* read_chars(int length, char* match);
+char* read_chars(int length, char* match, int term_early);
 int handle_operator(char* text, int* text_ptr, char* match);
 void print_int();
 int is_num(char in);

@@ -11,80 +11,115 @@
 !_TAG_PROGRAM_VERSION	5.9.0	//
 AC	Makefile	/^AC = nasm$/;"	m
 AFLAGS	Makefile	/^AFLAGS = -felf64 -g$/;"	m
-ANS	Makefile	/^ANS = 1643628$/;"	m
+ANS	Makefile	/^ANS = 42$/;"	m
 BUILD_DIR	Makefile	/^BUILD_DIR = .\/build$/;"	m
 CC	Makefile	/^CC = gcc$/;"	m
 CFLAGS	Makefile	/^CFLAGS = -g -I.\/src -I\/usr\/include$/;"	m
 DEFAULT_SIZE	src/compile.c	/^static const int DEFAULT_SIZE = 32;$/;"	v	typeref:typename:const int	file:
 SRC_DIR	Makefile	/^SRC_DIR = .\/src$/;"	m
 TEST_DIR	Makefile	/^TEST_DIR = .\/test$/;"	m
-TEST_FILES	Makefile	/^TEST_FILES = vars_4.c$/;"	m
+TEST_FILES	Makefile	/^TEST_FILES = vars_3.c$/;"	m
 _start	build/main.asm	/^_start: $/;"	l
+_start	build/main_combined.asm	/^_start: $/;"	l
 a	test/vars_2.c	/^int a=1+2;$/;"	v	typeref:typename:int
 a	test/vars_3.c	/^int a=1+2;$/;"	v	typeref:typename:int
 a	test/vars_4.c	/^int a=1+2;$/;"	v	typeref:typename:int
+a	test/while_1.c	/^int a=0;$/;"	v	typeref:typename:int
 add	build/main.asm	/^add rax, rbx $/;"	l
-add	src/compile.c	/^void add(){$/;"	f	typeref:typename:void
+add	build/main_combined.asm	/^add rax, rbx $/;"	l
+add	src/compile.c	/^void add(FILE* write_ptr){$/;"	f	typeref:typename:void
 align	src/compile.c	/^static const int align = 32;$/;"	v	typeref:typename:const int	file:
-and	src/compile.c	/^void and(){$/;"	f	typeref:typename:void
+and	src/compile.c	/^void and(FILE* write_ptr){$/;"	f	typeref:typename:void
+asm	Makefile	/^asm:$/;"	t
 b	test/vars_2.c	/^int b=3*2;$/;"	v	typeref:typename:int
 b	test/vars_3.c	/^int b=3*2+a*5;$/;"	v	typeref:typename:int
 b	test/vars_4.c	/^int b=3*(2+a)*5;$/;"	v	typeref:typename:int
-build_dir	src/compile.c	/^static const char *build_dir = "build\/";$/;"	v	typeref:typename:const char *	file:
+block3	build/main_combined.asm	/^block3: $/;"	l
+build_dir	src/compile.c	/^static const char* build_dir = "build\/";$/;"	v	typeref:typename:const char *	file:
 c	test/vars_4.c	/^int c=8*((5-a)*b+2)*2;$/;"	v	typeref:typename:int
 call	build/main.asm	/^call exit$/;"	l
 call	build/main.asm	/^call print_int $/;"	l
+call	build/main_combined.asm	/^call exit$/;"	l
+call	build/main_combined.asm	/^call print_int $/;"	l
 clean	Makefile	/^clean:$/;"	t
-cmp	src/compile.c	/^void cmp(){$/;"	f	typeref:typename:void
+cmp	build/main_combined.asm	/^cmp rax, 1 $/;"	l
+cmp	build/main_combined.asm	/^cmp rax, rbx $/;"	l
 compile	src/compile.c	/^void compile(char *input_file){$/;"	f	typeref:typename:void
+cond_if	src/compile.c	/^void cond_if(FILE* write_ptr, int idem_key){$/;"	f	typeref:typename:void
+cond_while	src/compile.c	/^void cond_while(FILE* write_ptr, int idem_key){$/;"	f	typeref:typename:void
+cond_while3	build/main_combined.asm	/^cond_while3: $/;"	l
+counter	src/compile.c	/^static int counter = 0;$/;"	v	typeref:typename:int	file:
 default	Makefile	/^default: test$/;"	t
+equal	src/compile.c	/^void equal(FILE* write_ptr){$/;"	f	typeref:typename:void
 exit	src/lib.asm	/^exit:$/;"	l
 extern	build/main.asm	/^extern exit $/;"	l
 extern	build/main.asm	/^extern int_to_string $/;"	l
 extern	build/main.asm	/^extern print_int $/;"	l
+extern	build/main_combined.asm	/^extern exit $/;"	l
+extern	build/main_combined.asm	/^extern int_to_string $/;"	l
+extern	build/main_combined.asm	/^extern print_int $/;"	l
+find_variable	src/compile.c	/^int find_variable(char* text){$/;"	f	typeref:typename:int
 get_type	src/compile.c	/^int get_type(char in){$/;"	f	typeref:typename:int
 global	build/main.asm	/^global _start $/;"	l
+global	build/main_combined.asm	/^global _start $/;"	l
 global	src/lib.asm	/^global exit$/;"	l
 global	src/lib.asm	/^global print_int$/;"	l
-handle_function	src/compile.c	/^int handle_function(char* text, int* text_ptr){$/;"	f	typeref:typename:int
-handle_operator	src/compile.c	/^int handle_operator(char* text, int* text_ptr){$/;"	f	typeref:typename:int
-idiv	src/compile.c	/^void idiv(){$/;"	f	typeref:typename:void
+greater	src/compile.c	/^void greater(FILE* write_ptr){$/;"	f	typeref:typename:void
+handle_function	src/compile.c	/^int handle_function(char* text, int* text_ptr, char* match, int idem_key){$/;"	f	typeref:typename:int
+handle_operator	src/compile.c	/^int handle_operator(char* text, int* text_ptr, char* match){$/;"	f	typeref:typename:int
+idiv	src/compile.c	/^void idiv(FILE* write_ptr){$/;"	f	typeref:typename:void
 imul	build/main.asm	/^imul rax, rbx $/;"	l
 int_to_string	src/lib.asm	/^.int_to_string:$/;"	l
 is_letter	src/compile.c	/^int is_letter(char in){$/;"	f	typeref:typename:int
 is_num	src/compile.c	/^int is_num(char in){$/;"	f	typeref:typename:int
 is_operator	src/compile.c	/^int is_operator(char in){$/;"	f	typeref:typename:int
+je	build/main_combined.asm	/^je cond_while3 $/;"	l
+jmp	build/main_combined.asm	/^jmp pre_while3 $/;"	l
+jne	build/main_combined.asm	/^jne block3 $/;"	l
 lea	build/main.asm	/^lea rdi, [rbx] $/;"	l
+lea	build/main_combined.asm	/^lea rdi, [rbx] $/;"	l
+less	src/compile.c	/^void less(FILE* write_ptr){$/;"	f	typeref:typename:void
 level	src/compile.c	/^static int level = 0;$/;"	v	typeref:typename:int	file:
 main	src/compile.c	/^int main(int argc, char* argv[]){$/;"	f	typeref:typename:int
+match_char	src/compile.c	/^void match_char(char* text){$/;"	f	typeref:typename:void
 mov	build/main.asm	/^mov [rbp-32], rax $/;"	l
 mov	build/main.asm	/^mov [rbp-64], rax $/;"	l
-mov	build/main.asm	/^mov [rbp-96], rax $/;"	l
-mov	build/main.asm	/^mov rax, [rbp-32] $/;"	l
 mov	build/main.asm	/^mov rax, [rbp-64] $/;"	l
-mov	build/main.asm	/^mov rax, [rbp-96] $/;"	l
 mov	build/main.asm	/^mov rbp, rsp $/;"	l
-mul	src/compile.c	/^void mul(){$/;"	f	typeref:typename:void
-or	src/compile.c	/^void or(){$/;"	f	typeref:typename:void
+mov	build/main_combined.asm	/^mov [rbp-32], rax $/;"	l
+mov	build/main_combined.asm	/^mov rbp, rsp $/;"	l
+mul	src/compile.c	/^void mul(FILE* write_ptr){$/;"	f	typeref:typename:void
+or	src/compile.c	/^void or(FILE* write_ptr){$/;"	f	typeref:typename:void
 pop	build/main.asm	/^pop rax $/;"	l
 pop	build/main.asm	/^pop rbx $/;"	l
-print_int	src/compile.c	/^void print_int(){$/;"	f	typeref:typename:void
+pop	build/main_combined.asm	/^pop rax $/;"	l
+pop	build/main_combined.asm	/^pop rbx $/;"	l
+pre_while3	build/main_combined.asm	/^pre_while3: $/;"	l
+print_int	src/compile.c	/^void print_int(FILE* write_ptr){$/;"	f	typeref:typename:void
 print_int	src/lib.asm	/^print_int:$/;"	l
 push	build/main.asm	/^push 1 $/;"	l
 push	build/main.asm	/^push 2 $/;"	l
 push	build/main.asm	/^push 3 $/;"	l
 push	build/main.asm	/^push 5 $/;"	l
-push	build/main.asm	/^push 8 $/;"	l
 push	build/main.asm	/^push rax $/;"	l
-read_chars	src/compile.c	/^char* read_chars(int length){$/;"	f	typeref:typename:char *
-read_ptr	src/compile.c	/^static FILE *read_ptr = NULL;$/;"	v	typeref:typename:FILE *	file:
+push	build/main_combined.asm	/^push 0 $/;"	l
+push	build/main_combined.asm	/^push 1 $/;"	l
+push	build/main_combined.asm	/^push 3 $/;"	l
+push	build/main_combined.asm	/^push rax $/;"	l
+read_chars	src/compile.c	/^char* read_chars(int length, char* match, int term_early){$/;"	f	typeref:typename:char *
+read_ptr	src/compile.c	/^static FILE* read_ptr = NULL;$/;"	v	typeref:typename:FILE *	file:
+recall_or_update_variable	src/compile.c	/^void recall_or_update_variable(char* text, int* text_ptr, char* match){$/;"	f	typeref:typename:void
 recall_variable	src/compile.c	/^void recall_variable(char* text, int* text_ptr){$/;"	f	typeref:typename:void
 set_variable	src/compile.c	/^void set_variable(char* text){$/;"	f	typeref:typename:void
-src_dir	src/compile.c	/^static const char *src_dir = "src\/";$/;"	v	typeref:typename:const char *	file:
+setg	build/main_combined.asm	/^setg al $/;"	l
+src_dir	src/compile.c	/^static const char* src_dir = "src\/";$/;"	v	typeref:typename:const char *	file:
 store_number	src/compile.c	/^void store_number(char* num, int* num_ptr){$/;"	f	typeref:typename:void
 sub	build/main.asm	/^sub rax, rbx $/;"	l
-sub	src/compile.c	/^void sub(){$/;"	f	typeref:typename:void
+sub	src/compile.c	/^void sub(FILE* write_ptr){$/;"	f	typeref:typename:void
 test	Makefile	/^test:$/;"	t
-vars	src/compile.c	/^static char **vars = NULL;$/;"	v	typeref:typename:char **	file:
+unequal	src/compile.c	/^void unequal(FILE* write_ptr){$/;"	f	typeref:typename:void
+ungetstring	src/compile.c	/^void ungetstring(char* text){$/;"	f	typeref:typename:void
+update_variable	src/compile.c	/^void update_variable(char* text){$/;"	f	typeref:typename:void
+vars	src/compile.c	/^static char** vars = NULL;$/;"	v	typeref:typename:char **	file:
 vars_ptr	src/compile.c	/^static int vars_ptr = 0;$/;"	v	typeref:typename:int	file:
-write_ptr	src/compile.c	/^static FILE *write_ptr = NULL; $/;"	v	typeref:typename:FILE *	file:
+write_ptr	src/compile.c	/^static FILE* write_ptr = NULL; $/;"	v	typeref:typename:FILE *	file:

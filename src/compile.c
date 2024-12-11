@@ -3,6 +3,9 @@
 #include <stdlib.h>
 #include <compile.h>
 
+#define is_changed (text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur))
+#define is_terminated (length > 0 && --length == 0)
+
 static FILE* read_ptr = NULL;
 static FILE* write_ptr = NULL; 
 static char** vars = NULL;
@@ -326,7 +329,7 @@ char* read_chars(int length, char* match, int term_early){
         //fprintf(write_ptr, "; text: %s \n", text);
         //fprintf(write_ptr, "; lvl :[%d] \n", level);
         //fprintf(write_ptr, "; -------------- \n");
-        if(strcmp(text, match) == 0 || (text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur) && term_early && length > 0 && --length == 0)){
+        if(strcmp(text, match) == 0 || (term_early && is_changed && is_terminated)){
             ungetc(cur, read_ptr);
             --level;
             return text;
@@ -341,12 +344,12 @@ char* read_chars(int length, char* match, int term_early){
             text_ptr = 0;
             text[0] = '\0';
         }
-        else if(text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)){
+        else if(is_changed){
             ungetc(cur, read_ptr);
             store_number(text, &text_ptr);
             recall_or_update_variable(text, &text_ptr, match);
             if(
-                (length > 0 && --length == 0) ||
+                is_terminated ||
                 handle_operator(text, &text_ptr, match) ||
                 handle_function(text, &text_ptr, match, counter++)
             ){

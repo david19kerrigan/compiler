@@ -20,6 +20,7 @@ static const int align = 32;
 void match_char(char* text){
     if(strcmp(text, "(") == 0) free(read_chars(0, ")", 0));
     else if(strcmp(text, "{") == 0) free(read_chars(0, "}", 0));
+    else if(strcmp(text, "[") == 0) free(read_chars(0, "]", 0));
 }
 
 int find_variable(char* text){
@@ -229,6 +230,18 @@ int handle_function(char* text, int* text_ptr, char* match, int idem_key){
     else if(strcmp(text, "int") == 0){
         free(read_chars(1, "#", 0)); // space
         char* var_name = read_chars(1, "#", 0);
+        char* left_brackets = read_chars(1, "#", 1);
+        if(strcmp(left_brackets, "[") == 0){
+            char* size = read_chars(1, "#", 1);
+            char* right_brackets = read_chars(1, "#", 1);
+            fprintf(write_ptr, "; size %s \n", size);
+            free(size);
+            free(right_brackets);
+        }
+        else{
+            ungetstring(left_brackets);
+        }
+        free(left_brackets);
         free(read_chars(1, "#", 0)); // =
         free(read_chars(0, match, 0));
         set_variable(var_name);
@@ -334,7 +347,7 @@ char* read_chars(int length, char* match, int term_early){
             --level;
             return text;
         }
-        else if(text[0] && strchr("({", text[0]) != NULL){
+        else if(text[0] && strchr("({[", text[0]) != NULL){
             ungetc(cur, read_ptr);
             match_char(text);
             if(length > 0 && --length == 0){

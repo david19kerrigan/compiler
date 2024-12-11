@@ -156,6 +156,7 @@ void unequal(FILE* write_ptr){
         "pop rax \n"
         "pop rbx \n"
         "cmp rax, rbx \n"
+        "xor al, al"
         "setnz al \n"
         "push rax \n\n");
 }
@@ -288,7 +289,7 @@ int handle_operator(char* text, int* text_ptr, char* match){
     }
     else if(strcmp(text, "<") == 0){
         free(read_chars(1, match, 0));
-        greater(write_ptr);
+        less(write_ptr);
         return 0;
     }
     else if(strcmp(text, "==") == 0){

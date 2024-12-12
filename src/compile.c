@@ -37,21 +37,21 @@ void ungetstring(char* text){
     }
 }
 
-void recall_variable(char* text, int* text_ptr){
+void recall_variable(char* text, int* text_ptr, int index){
     if(*text_ptr > 0 && is_letter(text[*text_ptr-1])){
         // fprintf(write_ptr, "; recall |%s|\n", text);
         int offset = find_variable(text);
         if(offset < 0) return;
         fprintf(write_ptr,
             "mov rax, [rbp-%d] \n"
-            "push rax \n\n", offset * align + align);
+            "push rax \n\n", offset * align + align + index);
         *text_ptr = 0;
         text[0] = '\0';
     }
 }
 
 void set_variable(char* text){
-    // fprintf(write_ptr, "; set |%s|\n", text);
+    fprintf(write_ptr, "; set |%s|\n", text);
     fprintf(write_ptr,
         "pop rax \n"
         "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
@@ -59,13 +59,13 @@ void set_variable(char* text){
     strcpy(vars[vars_ptr++], text);
 }
 
-void update_variable(char* text){
+void update_variable(char* text, int index){
     fprintf(write_ptr, "; update |%s|\n", text);
     int offset = find_variable(text);
     if(offset < 0) return;
     fprintf(write_ptr,
         "pop rax \n"
-        "mov [rbp-%d], rax \n\n", offset * align + align);
+        "mov [rbp-%d], rax \n\n", offset * align + align + index);
 }
 
 void store_number(char* num, int* num_ptr){
@@ -216,16 +216,38 @@ void idiv(){
 
 void recall_or_update_variable(char* text, int* text_ptr, char* match){
     if(find_variable(text) >= 0){
-        char* eq = read_chars(1, "#", 1);
-        if(strcmp(eq, "=") == 0){
-            free(read_chars(0, match, 0));
-            update_variable(text);
+        char* left_brackets = read_chars(1, "#", 1); // array
+        if(strcmp(left_brackets, "[") == 0){
+            char* index = read_chars(1, "#", 1);
+            fprintf(write_ptr, "; index %s\n", index);
+            char* right_brackets = read_chars(1, "#", 1);
+            char* eq = read_chars(1, "#", 1);
+            if(strcmp(eq, "=") == 0){
+                free(read_chars(0, match, 0));
+                update_variable(text, atoi(index));
+            }
+            else{
+                ungetstring(eq);
+                recall_variable(text, text_ptr, atoi(index));
+            }
+            free(eq);
+            free(index);
+            free(right_brackets);
         }
         else{
-            ungetstring(eq);
-            recall_variable(text, text_ptr);
+            ungetstring(left_brackets);
+            char* eq = read_chars(1, "#", 1);
+            if(strcmp(eq, "=") == 0){
+                free(read_chars(0, match, 0));
+                update_variable(text, 0);
+            }
+            else{
+                ungetstring(eq);
+                recall_variable(text, text_ptr, 0);
+            }
+            free(eq);
         }
-        free(eq);
+        free(left_brackets);
     }
 }
 

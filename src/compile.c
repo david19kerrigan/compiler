@@ -98,14 +98,22 @@ int get_type(char in){
     else return 6;
 }
 
-void print_int(FILE* write_ptr){
+void mmap(int size){
+    fprintf(write_ptr,
+        "mov rax, 90 \n"
+        "mov rsi, %d \n"
+        "syscall \n"
+        "push rax \n", size);
+}
+
+void print_int(){
     fprintf(write_ptr, 
         "pop rbx \n"
         "lea rdi, [rbx] \n"
         "call print_int \n\n");
 }
 
-void cond_if(FILE* write_ptr, int idem_key){
+void cond_if(int idem_key){
     fprintf(write_ptr, 
         "pop rax \n"
         "cmp rax, 1 \n"
@@ -113,7 +121,7 @@ void cond_if(FILE* write_ptr, int idem_key){
         "jne block%d \n\n", idem_key, idem_key);
 }
 
-void cond_while(FILE* write_ptr, int idem_key){
+void cond_while(int idem_key){
     fprintf(write_ptr, 
         "pop rax \n"
         "cmp rax, 1 \n"
@@ -121,7 +129,7 @@ void cond_while(FILE* write_ptr, int idem_key){
         "jne block%d \n\n", idem_key, idem_key);
 }
 
-void or(FILE* write_ptr){
+void or(){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -129,7 +137,7 @@ void or(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void and(FILE* write_ptr){
+void and(){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -137,7 +145,7 @@ void and(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void greater(FILE* write_ptr){
+void greater(){
     fprintf(write_ptr, 
         "pop rbx \n"
         "pop rax \n"
@@ -146,7 +154,7 @@ void greater(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void less(FILE* write_ptr){
+void less(){
     fprintf(write_ptr, 
         "pop rbx \n"
         "pop rax \n"
@@ -155,7 +163,7 @@ void less(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void unequal(FILE* write_ptr){
+void unequal(){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -165,7 +173,7 @@ void unequal(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void equal(FILE* write_ptr){
+void equal(){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -174,7 +182,7 @@ void equal(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void add(FILE* write_ptr){
+void add(){
     fprintf(write_ptr, 
         "pop rax \n"
         "pop rbx \n"
@@ -182,7 +190,7 @@ void add(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void sub(FILE* write_ptr){
+void sub(){
     fprintf(write_ptr, 
         "pop rbx \n"
         "pop rax \n"
@@ -190,7 +198,7 @@ void sub(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void mul(FILE* write_ptr){
+void mul(){
     fprintf(write_ptr,
         "pop rax \n"
         "pop rbx \n"
@@ -198,7 +206,7 @@ void mul(FILE* write_ptr){
         "push rax \n\n");
 }
 
-void idiv(FILE* write_ptr){
+void idiv(){
     fprintf(write_ptr,
         "pop rbx \n"
         "pop rax \n"
@@ -230,27 +238,29 @@ int handle_function(char* text, int* text_ptr, char* match, int idem_key){
     else if(strcmp(text, "int") == 0){
         free(read_chars(1, "#", 0)); // space
         char* var_name = read_chars(1, "#", 0);
-        char* left_brackets = read_chars(1, "#", 1);
+
+        char* left_brackets = read_chars(1, "#", 1); // array
         if(strcmp(left_brackets, "[") == 0){
             char* size = read_chars(1, "#", 1);
             char* right_brackets = read_chars(1, "#", 1);
-            fprintf(write_ptr, "; size %s \n", size);
+            mmap(atoi(size));
+            set_variable(var_name);
             free(size);
             free(right_brackets);
         }
         else{
             ungetstring(left_brackets);
+            free(read_chars(1, "#", 0)); // =
+            free(read_chars(0, match, 0));
+            set_variable(var_name);
+            free(var_name);
         }
         free(left_brackets);
-        free(read_chars(1, "#", 0)); // =
-        free(read_chars(0, match, 0));
-        set_variable(var_name);
-        free(var_name);
         return 0;
     }
     else if(strcmp(text, "if") == 0){
         free(read_chars(1, "#", 0)); // (
-        cond_if(write_ptr, idem_key);
+        cond_if(idem_key);
         fprintf(write_ptr, "cond_if%d: \n", idem_key);
         free(read_chars(1, "#", 0)); // {
         fprintf(write_ptr, 
@@ -264,7 +274,7 @@ int handle_function(char* text, int* text_ptr, char* match, int idem_key){
         fprintf(write_ptr, "jmp pre_while%d \n", idem_key);
         fprintf(write_ptr, "pre_while%d: \n", idem_key);
         free(read_chars(1, "#", 0)); // (
-        cond_while(write_ptr, idem_key);
+        cond_while(idem_key);
         fprintf(write_ptr, "cond_while%d: \n", idem_key);
         free(read_chars(1, "#", 0)); // {
         fprintf(write_ptr, 
@@ -280,52 +290,52 @@ int handle_function(char* text, int* text_ptr, char* match, int idem_key){
 int handle_operator(char* text, int* text_ptr, char* match){
     if(strcmp(text, "-") == 0){
         free(read_chars(0, match, 0));
-        sub(write_ptr);
+        sub();
         return 1;
     }
     else if(strcmp(text, "+") == 0){
         free(read_chars(0, match, 0));
-        add(write_ptr);
+        add();
         return 1;
     }
     else if(strcmp(text, "*") == 0){
         free(read_chars(1, match, 0));
-        mul(write_ptr);
+        mul();
         return 0;
     }
     else if(strcmp(text, "/") == 0){
         free(read_chars(1, match, 0));
-        idiv(write_ptr);
+        idiv();
         return 0;
     }
     else if(strcmp(text, ">") == 0){
         free(read_chars(1, match, 0));
-        greater(write_ptr);
+        greater();
         return 0;
     }
     else if(strcmp(text, "<") == 0){
         free(read_chars(1, match, 0));
-        less(write_ptr);
+        less();
         return 0;
     }
     else if(strcmp(text, "==") == 0){
         free(read_chars(1, match, 0));
-        equal(write_ptr);
+        equal();
         return 0;
     }
     else if(strcmp(text, "!=") == 0){
         free(read_chars(1, match, 0));
-        equal(write_ptr);
+        equal();
         return 0;
     }
     else if(strcmp(text, "||") == 0){
         free(read_chars(0, match, 0));
-        or(write_ptr);
+        or();
         return 1;
     }
     else if(strcmp(text, "&&") == 0){
         free(read_chars(0, match, 0));
-        and(write_ptr);
+        and();
         return 1;
     }
     else return 0;

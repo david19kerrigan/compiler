@@ -44,7 +44,7 @@ void recall_variable(char* text, int* text_ptr, int index){
         if(offset < 0) return;
         fprintf(write_ptr,
             "mov rax, [rbp-%d+%d] \n"
-            "push rax \n\n", offset * align + align, index * 32);
+            "push rax \n\n", offset * align + align, index * 16);
         *text_ptr = 0;
         text[0] = '\0';
     }
@@ -65,7 +65,7 @@ void update_variable(char* text, int index){
     if(offset < 0) return;
     fprintf(write_ptr,
         "pop rax \n"
-        "mov [rbp-%d+%d], rax \n\n", offset * align + align, index * 32);
+        "mov [rbp-%d+%d], rax \n\n", offset * align + align, index * 16);
 }
 
 void store_number(char* num, int* num_ptr){

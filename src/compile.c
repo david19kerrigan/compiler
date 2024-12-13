@@ -15,7 +15,7 @@ static int counter = 0;
 static const char* build_dir = "build/";
 static const char* src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
-static const int align = 32;
+static const int align = 1024;
 
 void match_char(char* text){
     if(strcmp(text, "(") == 0) free(read_chars(0, ")", 0));
@@ -43,8 +43,8 @@ void recall_variable(char* text, int* text_ptr, int index){
         int offset = find_variable(text);
         if(offset < 0) return;
         fprintf(write_ptr,
-            "mov rax, [rbp-%d] \n"
-            "push rax \n\n", offset * align + align + index);
+            "mov rax, [rbp-%d+%d] \n"
+            "push rax \n\n", offset * align + align, index * 32);
         *text_ptr = 0;
         text[0] = '\0';
     }
@@ -65,7 +65,7 @@ void update_variable(char* text, int index){
     if(offset < 0) return;
     fprintf(write_ptr,
         "pop rax \n"
-        "mov [rbp-%d], rax \n\n", offset * align + align + index);
+        "mov [rbp-%d+%d], rax \n\n", offset * align + align, index * 32);
 }
 
 void store_number(char* num, int* num_ptr){

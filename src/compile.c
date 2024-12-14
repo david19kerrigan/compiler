@@ -15,7 +15,7 @@ static int counter = 0;
 static const char* build_dir = "build/";
 static const char* src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
-static const int align = 1024;
+static const int align = 32;
 
 void match_char(char* text){
     if(strcmp(text, "(") == 0) free(read_chars(0, ")", 0));
@@ -42,9 +42,18 @@ void recall_variable(char* text, int* text_ptr, int index){
         // fprintf(write_ptr, "; recall |%s|\n", text);
         int offset = find_variable(text);
         if(offset < 0) return;
-        fprintf(write_ptr,
-            "mov rax, [rbp-%d+%d] \n"
-            "push rax \n\n", offset * align + align, index * 16);
+        if(index > -1){
+            fprintf(write_ptr,
+                "mov rbx, [rbp-%d] \n"
+                "add rbx, %d \n"
+                "mov rax, [rbx] \n"
+                "push rax \n\n", offset * align + align, index * 16);
+        }
+        else{
+            fprintf(write_ptr,
+                "mov rax, [rbp-%d] \n"
+                "push rax \n\n", offset * align + align);
+        }
         *text_ptr = 0;
         text[0] = '\0';
     }
@@ -63,9 +72,18 @@ void update_variable(char* text, int index){
     fprintf(write_ptr, "; update |%s|\n", text);
     int offset = find_variable(text);
     if(offset < 0) return;
-    fprintf(write_ptr,
-        "pop rax \n"
-        "mov [rbp-%d+%d], rax \n\n", offset * align + align, index * 16);
+    if(index > -1){
+        fprintf(write_ptr,
+            "mov rbx, [rbp-%d] \n"
+            "add rbx, %d \n"
+            "pop rax \n"
+            "mov [rbx], rax \n\n", offset * align + align, index * 16);
+    }
+    else{
+        fprintf(write_ptr,
+            "pop rax \n"
+            "mov [rbp-%d], rax \n\n", offset * align + align);
+    }
 }
 
 void store_number(char* num, int* num_ptr){
@@ -100,10 +118,15 @@ int get_type(char in){
 
 void mmap(int size){
     fprintf(write_ptr,
-        "mov rax, 90 \n"
+        "mov rax, 9 \n"
         "mov rsi, %d \n"
+        "mov rdi, 0 \n"
+        "mov rdx, 3 \n"
+        "mov r10, 34 \n"
+        "mov r8, -1 \n"
+        "mov r9, 0 \n"
         "syscall \n"
-        "push rax \n", size);
+        "push rax \n", size * 16);
 }
 
 void print_int(){
@@ -239,11 +262,11 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             char* eq = read_chars(1, "#", 1);
             if(strcmp(eq, "=") == 0){
                 free(read_chars(0, match, 0));
-                update_variable(text, 0);
+                update_variable(text, -1);
             }
             else{
                 ungetstring(eq);
-                recall_variable(text, text_ptr, 0);
+                recall_variable(text, text_ptr, -1);
             }
             free(eq);
         }

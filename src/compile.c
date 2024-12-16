@@ -2,7 +2,6 @@
 #include <string.h>
 #include <stdlib.h>
 #include <compile.h>
-
 #define is_changed (text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur))
 #define is_terminated (length > 0 && --length == 0)
 
@@ -138,199 +137,6 @@ void idiv(){
         "push rax \n\n");
 }
 
-int is_num(char in){
-    return strchr("0123456789", in) != NULL;
-}
-
-int is_operator(char in){
-    return strchr("/*-+=&|<>", in) != NULL;
-}
-
-int is_letter(char in){
-    return strchr("abcdefghijklmnopqrstuvwxyz", in) != NULL;
-}
-
-int get_type(char in){
-    if(is_num(in)) return 0;
-    else if(is_operator(in)) return 1;
-    else if(is_letter(in)) return 2;
-    else if(in == ';') return 3;
-    else if(in == '\n') return 4;
-    else if(in == ' ') return 5;
-    else return 6;
-}
-
-void match_char(char* text){
-    if(strcmp(text, "(") == 0) free(read_chars(0, ")", 0));
-    else if(strcmp(text, "{") == 0) free(read_chars(0, "}", 0));
-    else if(strcmp(text, "[") == 0) free(read_chars(0, "]", 0));
-}
-
-int find_variable(char* text){
-    int offset = -1;
-    for(int i = 0; i < vars_ptr; ++i){
-        if(strcmp(vars[i], text) == 0) offset = i;
-    }
-    return offset;
-}
-
-void ungetstring(char* text){
-    for(int i = 0; i < strlen(text); ++i){
-        ungetc(text[i], read_ptr);
-    }
-}
-
-void recall_variable(char* text, int* text_ptr, int index){
-    if(*text_ptr > 0 && is_letter(text[*text_ptr-1])){
-        fprintf(write_ptr, "; recall |%s|\n", text);
-        int offset = find_variable(text);
-        if(offset < 0) return;
-        if(index > -1){
-            fprintf(write_ptr,
-                "mov rbx, [rbp-%d] \n"
-                "pop rax \n"
-                "add rbx, rax \n"
-                "mov rax, [rbx] \n"
-                "push rax \n\n", offset * align + align);
-        }
-        else{
-            fprintf(write_ptr,
-                "mov rax, [rbp-%d] \n"
-                "push rax \n\n", offset * align + align);
-        }
-        *text_ptr = 0;
-        text[0] = '\0';
-    }
-}
-
-void set_variable(char* text){
-    fprintf(write_ptr, "; set |%s|\n", text);
-    fprintf(write_ptr,
-        "pop rax \n"
-        "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
-    vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars[vars_ptr++], text);
-}
-
-void update_variable(char* text, int index){
-    fprintf(write_ptr, "; update |%s|\n", text);
-    int offset = find_variable(text);
-    if(offset < 0) return;
-    if(index > -1){
-        fprintf(write_ptr,
-            "mov rbx, [rbp-%d] \n"
-            "pop rax \n"
-            "add rbx, rax \n"
-            "pop rax \n"
-            "mov [rbx], rax \n\n", offset * align + align);
-    }
-    else{
-        fprintf(write_ptr,
-            "pop rax \n"
-            "mov [rbp-%d], rax \n\n", offset * align + align);
-    }
-}
-
-void store_number(char* num, int* num_ptr){
-    if(*num_ptr > 0 && is_num(num[*num_ptr-1])){
-        fprintf(write_ptr, "push %s \n", num);
-        *num_ptr = 0;
-        num[0] = '\0';
-    }
-}
-
-void recall_or_update_variable(char* text, int* text_ptr, char* match){
-    if(find_variable(text) >= 0){
-        char* left_brackets = read_chars(1, "#", 1); // array
-        if(strcmp(left_brackets, "[") == 0){
-            ungetstring(left_brackets);
-            read_chars(1, "#", 0);
-            char* eq = read_chars(1, "#", 1);
-            if(strcmp(eq, "=") == 0){
-                free(read_chars(0, match, 0));
-                update_variable(text, 1);
-            }
-            else{
-                ungetstring(eq);
-                recall_variable(text, text_ptr, 1);
-            }
-            free(eq);
-        }
-        else{
-            ungetstring(left_brackets);
-            char* eq = read_chars(1, "#", 1);
-            if(strcmp(eq, "=") == 0){
-                free(read_chars(0, match, 0));
-                update_variable(text, -1);
-            }
-            else{
-                ungetstring(eq);
-                recall_variable(text, text_ptr, -1);
-            }
-            free(eq);
-        }
-        free(left_brackets);
-    }
-}
-
-int handle_function(char* text, int* text_ptr, char* match, int idem_key){
-    if(strcmp(text, "print") == 0){
-        free(read_chars(1, "#", 0));
-        print_int(write_ptr);
-        return 0;
-    }
-    else if(strcmp(text, "int") == 0){
-        free(read_chars(1, "#", 0)); // space
-        char* var_name = read_chars(1, "#", 0);
-
-        char* left_brackets = read_chars(1, "#", 1); // array
-        if(strcmp(left_brackets, "[") == 0){
-            char* size = read_chars(1, "#", 1);
-            char* right_brackets = read_chars(1, "#", 1);
-            mmap(atoi(size));
-            set_variable(var_name);
-            free(size);
-            free(right_brackets);
-        }
-        else{
-            ungetstring(left_brackets);
-            free(read_chars(1, "#", 0)); // =
-            free(read_chars(0, match, 0));
-            set_variable(var_name);
-            free(var_name);
-        }
-        free(left_brackets);
-        return 0;
-    }
-    else if(strcmp(text, "if") == 0){
-        free(read_chars(1, "#", 0)); // (
-        cond_if(idem_key);
-        fprintf(write_ptr, "cond_if%d: \n", idem_key);
-        free(read_chars(1, "#", 0)); // {
-        fprintf(write_ptr, 
-            "jmp block%d \n"
-            "block%d: \n", idem_key, idem_key);
-        return 1;
-    }
-    else if(strcmp(text, "else") == 0){
-    }
-    else if(strcmp(text, "while") == 0){
-        fprintf(write_ptr, "jmp pre_while%d \n", idem_key);
-        fprintf(write_ptr, "pre_while%d: \n", idem_key);
-        free(read_chars(1, "#", 0)); // (
-        cond_while(idem_key);
-        fprintf(write_ptr, "cond_while%d: \n", idem_key);
-        free(read_chars(1, "#", 0)); // {
-        fprintf(write_ptr, 
-            "jmp pre_while%d \n"
-            "block%d: \n", idem_key, idem_key);
-        return 1;
-    }
-    else{
-        return 0;
-    }
-}
-
 int handle_operator(char* text, int* text_ptr, char* match){
     if(strcmp(text, "-") == 0){
         free(read_chars(0, match, 0));
@@ -385,6 +191,199 @@ int handle_operator(char* text, int* text_ptr, char* match){
     else return 0;
 }
 
+int is_num(char in){
+    return strchr("0123456789", in) != NULL;
+}
+
+int is_operator(char in){
+    return strchr("/*-+=&|<>", in) != NULL;
+}
+
+int is_letter(char in){
+    return strchr("abcdefghijklmnopqrstuvwxyz", in) != NULL;
+}
+
+int get_type(char in){
+    if(is_num(in)) return 0;
+    else if(is_operator(in)) return 1;
+    else if(is_letter(in)) return 2;
+    else if(in == ';') return 3;
+    else if(in == '\n') return 4;
+    else if(in == ' ') return 5;
+    else return 6;
+}
+
+void ungetstring(char* text){
+    for(int i = 0; i < strlen(text); ++i){
+        ungetc(text[i], read_ptr);
+    }
+}
+
+void match_char(char* text){
+    if(strcmp(text, "(") == 0) free(read_chars(0, ")", 0));
+    else if(strcmp(text, "{") == 0) free(read_chars(0, "}", 0));
+    else if(strcmp(text, "[") == 0) free(read_chars(0, "]", 0));
+}
+
+void store_number(char* num, int* num_ptr){
+    if(*num_ptr > 0 && is_num(num[*num_ptr-1])){
+        fprintf(write_ptr, "push %s \n", num);
+        *num_ptr = 0;
+        num[0] = '\0';
+    }
+}
+
+int find_variable(char* text){
+    int offset = -1;
+    for(int i = 0; i < vars_ptr; ++i){
+        if(strcmp(vars[i], text) == 0) offset = i;
+    }
+    return offset;
+}
+
+void set_variable(char* text){
+    fprintf(write_ptr, "; set |%s|\n", text);
+    fprintf(write_ptr,
+        "pop rax \n"
+        "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
+    vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars[vars_ptr++], text);
+}
+
+void recall_variable(char* text, int* text_ptr, int index){
+    if(*text_ptr > 0 && is_letter(text[*text_ptr-1])){
+        fprintf(write_ptr, "; recall |%s|\n", text);
+        int offset = find_variable(text);
+        if(offset < 0) return;
+        if(index > -1){
+            fprintf(write_ptr,
+                "mov rbx, [rbp-%d] \n"
+                "pop rax \n"
+                "add rbx, rax \n"
+                "mov rax, [rbx] \n"
+                "push rax \n\n", offset * align + align);
+        }
+        else{
+            fprintf(write_ptr,
+                "mov rax, [rbp-%d] \n"
+                "push rax \n\n", offset * align + align);
+        }
+        *text_ptr = 0;
+        text[0] = '\0';
+    }
+}
+
+void update_variable(char* text, int index){
+    fprintf(write_ptr, "; update |%s|\n", text);
+    int offset = find_variable(text);
+    if(offset < 0) return;
+    if(index > -1){
+        fprintf(write_ptr,
+            "mov rbx, [rbp-%d] \n"
+            "pop rax \n"
+            "add rbx, rax \n"
+            "pop rax \n"
+            "mov [rbx], rax \n\n", offset * align + align);
+    }
+    else{
+        fprintf(write_ptr,
+            "pop rax \n"
+            "mov [rbp-%d], rax \n\n", offset * align + align);
+    }
+}
+
+void recall_or_update_variable(char* text, int* text_ptr, char* match){
+    if(find_variable(text) >= 0){
+        char* left_brackets = read_chars(1, "#", 1);
+        if(strcmp(left_brackets, "[") == 0){ // array
+            ungetstring(left_brackets);
+            read_chars(1, "#", 0);
+            char* eq = read_chars(1, "#", 1);
+            if(strcmp(eq, "=") == 0){ // update
+                free(read_chars(0, match, 0));
+                update_variable(text, 1);
+            }
+            else{ // recall
+                ungetstring(eq);
+                recall_variable(text, text_ptr, 1);
+            }
+            free(eq);
+        }
+        else{ // primitive
+            ungetstring(left_brackets);
+            char* eq = read_chars(1, "#", 1);
+            if(strcmp(eq, "=") == 0){ // update
+                free(read_chars(0, match, 0));
+                update_variable(text, -1);
+            }
+            else{ // recall
+                ungetstring(eq);
+                recall_variable(text, text_ptr, -1);
+            }
+            free(eq);
+        }
+        free(left_brackets);
+    }
+}
+
+int handle_token(char* text, int* text_ptr, char* match, int idem_key){
+    if(strcmp(text, "print") == 0){
+        free(read_chars(1, "#", 0));
+        print_int(write_ptr);
+        return 0;
+    }
+    else if(strcmp(text, "int") == 0){
+        free(read_chars(1, "#", 0)); // space
+        char* var_name = read_chars(1, "#", 0);
+        char* left_brackets = read_chars(1, "#", 1); // array
+        if(strcmp(left_brackets, "[") == 0){
+            char* size = read_chars(1, "#", 1);
+            char* right_brackets = read_chars(1, "#", 1);
+            mmap(atoi(size));
+            set_variable(var_name);
+            free(size);
+            free(right_brackets);
+        }
+        else{ // primitive
+            ungetstring(left_brackets);
+            free(read_chars(1, "#", 0)); // =
+            free(read_chars(0, match, 0));
+            set_variable(var_name);
+            free(var_name);
+        }
+        free(left_brackets);
+        return 0;
+    }
+    else if(strcmp(text, "if") == 0){
+        free(read_chars(1, "#", 0)); // (
+        cond_if(idem_key);
+        fprintf(write_ptr, "cond_if%d: \n", idem_key);
+        free(read_chars(1, "#", 0)); // {
+        fprintf(write_ptr, 
+            "jmp block%d \n"
+            "block%d: \n", idem_key, idem_key);
+        return 1;
+    }
+    else if(strcmp(text, "else") == 0){
+    }
+    else if(strcmp(text, "while") == 0){
+        fprintf(write_ptr, "jmp pre_while%d \n", idem_key);
+        fprintf(write_ptr, "pre_while%d: \n", idem_key);
+        free(read_chars(1, "#", 0)); // (
+        cond_while(idem_key);
+        fprintf(write_ptr, "cond_while%d: \n", idem_key);
+        free(read_chars(1, "#", 0)); // {
+        fprintf(write_ptr, 
+            "jmp pre_while%d \n"
+            "block%d: \n", idem_key, idem_key);
+        return 1;
+    }
+    else{
+        return 0;
+    }
+}
+
+
 char* read_chars(int length, char* match, int term_early){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
@@ -418,7 +417,7 @@ char* read_chars(int length, char* match, int term_early){
             if(
                 is_terminated ||
                 handle_operator(text, &text_ptr, match) ||
-                handle_function(text, &text_ptr, match, counter++)
+                handle_token(text, &text_ptr, match, counter++)
             ){
                 --level;
                 return text;

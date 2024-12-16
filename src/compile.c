@@ -273,8 +273,10 @@ void recall_variable(char* text, int* text_ptr, int index){
         }
         else{
             fprintf(write_ptr,
-                "mov rax, [rbp-%d] \n"
-                "push rax \n\n", offset * align + align);
+                "mov rax, rbp \n"
+                "sub rax, %d \n"
+                "mov rbx, [rax] \n"
+                "push rbx \n\n", offset * align + align);
         }
         *text_ptr = 0;
         text[0] = '\0';
@@ -294,7 +296,10 @@ void update_variable(char* text, int index){
             "push rbx \n", offset * align + align, align);
     }
     else{
-        fprintf(write_ptr, "push [rbp-%d]", offset * align + align);
+        fprintf(write_ptr, 
+            "mov rax, rbp \n"
+            "sub rax, %d \n"
+            "push rax \n\n", offset * align + align);
     }
 }
 
@@ -307,7 +312,7 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             char* eq = read_chars(1, "#", 1);
             if(strcmp(eq, "=") == 0){ // update
                 update_variable(text, 1);
-                free(read_chars(0, match, 0));
+                free(read_chars(0, ";", 0));
                 assign_variable();
             }
             else{ // recall
@@ -321,7 +326,7 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             char* eq = read_chars(1, "#", 1);
             if(strcmp(eq, "=") == 0){ // update
                 update_variable(text, -1);
-                free(read_chars(0, match, 0));
+                free(read_chars(0, ";", 0));
                 assign_variable();
             }
             else{ // recall

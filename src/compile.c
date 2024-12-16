@@ -16,6 +16,13 @@ static const char* src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
 static const int align = 32;
 
+void assign_variable(){
+    fprintf(write_ptr,
+        "pop rax \n"
+        "pop rbx \n"
+        "mov [rbx], rax \n\n");
+}
+
 void mmap(int size){
     fprintf(write_ptr,
         "mov rax, 9 \n"
@@ -26,7 +33,7 @@ void mmap(int size){
         "mov r8, -1 \n"
         "mov r9, 0 \n"
         "syscall \n"
-        "push rax \n", size * 16);
+        "push rax \n", size * align);
 }
 
 void print_int(){
@@ -281,14 +288,12 @@ void update_variable(char* text, int index){
         fprintf(write_ptr,
             "mov rbx, [rbp-%d] \n"
             "pop rax \n"
+            "imul rax, %d \n"
             "add rbx, rax \n"
-            "pop rax \n"
-            "mov [rbx], rax \n\n", offset * align + align);
+            "push rbx \n", offset * align + align, align*2);
     }
     else{
-        fprintf(write_ptr,
-            "pop rax \n"
-            "mov [rbp-%d], rax \n\n", offset * align + align);
+        fprintf(write_ptr, "push [rbp-%d]", offset * align + align);
     }
 }
 
@@ -300,8 +305,9 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             read_chars(1, "#", 0);
             char* eq = read_chars(1, "#", 1);
             if(strcmp(eq, "=") == 0){ // update
-                free(read_chars(0, match, 0));
                 update_variable(text, 1);
+                free(read_chars(0, match, 0));
+                assign_variable();
             }
             else{ // recall
                 ungetstring(eq);
@@ -313,8 +319,9 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             ungetstring(left_brackets);
             char* eq = read_chars(1, "#", 1);
             if(strcmp(eq, "=") == 0){ // update
-                free(read_chars(0, match, 0));
                 update_variable(text, -1);
+                free(read_chars(0, match, 0));
+                assign_variable();
             }
             else{ // recall
                 ungetstring(eq);

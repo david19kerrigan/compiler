@@ -266,9 +266,10 @@ void recall_variable(char* text, int* text_ptr, int index){
             fprintf(write_ptr,
                 "mov rbx, [rbp-%d] \n"
                 "pop rax \n"
+                "imul rax, %d \n"
                 "add rbx, rax \n"
                 "mov rax, [rbx] \n"
-                "push rax \n\n", offset * align + align);
+                "push rax \n\n", offset * align + align, align);
         }
         else{
             fprintf(write_ptr,
@@ -290,7 +291,7 @@ void update_variable(char* text, int index){
             "pop rax \n"
             "imul rax, %d \n"
             "add rbx, rax \n"
-            "push rbx \n", offset * align + align, align*2);
+            "push rbx \n", offset * align + align, align);
     }
     else{
         fprintf(write_ptr, "push [rbp-%d]", offset * align + align);

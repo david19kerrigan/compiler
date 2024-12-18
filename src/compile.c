@@ -11,6 +11,8 @@ static char** vars = NULL;
 static int vars_ptr = 0;
 static char** vars_local = NULL;
 static int vars_ptr_local = 0;
+static char** funcs = NULL;
+static int funcs_ptr = 0;
 static int level = 0;
 static int counter = 0;
 static int arg_ptr = 0;
@@ -487,6 +489,7 @@ void compile(char *input_file){
     write_ptr = fopen(write_path, "w");
     vars = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
     vars_local = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    funcs = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
 
     fprintf(write_ptr,
         "global _start \n" 
@@ -505,6 +508,12 @@ void compile(char *input_file){
 
     for(int i = 0; i < vars_ptr; ++i){
         free(vars[i]);
+    }
+    for(int i = 0; i < vars_ptr_local; ++i){
+        free(vars_ptr_local[i]);
+    }
+    for(int i = 0; i < funcs; ++i){
+        free(funcs[i]);
     }
     free(vars);
 

@@ -9,8 +9,12 @@ static FILE* read_ptr = NULL;
 static FILE* write_ptr = NULL; 
 static char** vars = NULL;
 static int vars_ptr = 0;
+static char** vars_local = NULL;
+static int vars_ptr_local = 0;
 static int level = 0;
 static int counter = 0;
+static int arg_ptr = 0;
+static char* arguments[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 static const char* build_dir = "build/";
 static const char* src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
@@ -217,7 +221,11 @@ int get_type(char in){
     else if(in == ';') return 3;
     else if(in == '\n') return 4;
     else if(in == ' ') return 5;
-    else return 6;
+    else if(in == ',') return 6;
+    else if(in == ')') return 7;
+    else if(in == '}') return 8;
+    else if(in == ']') return 9;
+    else return 10;
 }
 
 void ungetstring(char* text){
@@ -255,6 +263,13 @@ void set_variable(char* text){
         "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
     vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     strcpy(vars[vars_ptr++], text);
+}
+
+void set_variable_function(char* text){
+    fprintf(write_ptr, "; set func var |%s|\n", text);
+    fprintf(write_ptr, "mov [rbp-%d], %s \n\n", vars_ptr_local * align + align, arguments[vars_ptr_local]);
+    vars_local[vars_ptr_local] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars_local[vars_ptr_local++], text);
 }
 
 void recall_variable(char* text, int* text_ptr, int index){
@@ -310,26 +325,26 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             ungetstring(left_brackets);
             read_chars(1, "#", 0);
             char* eq = read_chars(1, "#", 1);
-            if(strcmp(eq, "=") == 0){ // update
+            if(strcmp(eq, "=") == 0){        // update
                 update_variable(text, 1);
                 free(read_chars(0, ";", 0));
                 assign_variable();
             }
-            else{ // recall
+            else{                            // recall
                 ungetstring(eq);
                 recall_variable(text, text_ptr, 1);
             }
             free(eq);
         }
-        else{ // primitive
+        else{                                // primitive
             ungetstring(left_brackets);
             char* eq = read_chars(1, "#", 1);
-            if(strcmp(eq, "=") == 0){ // update
+            if(strcmp(eq, "=") == 0){        // update
                 update_variable(text, -1);
                 free(read_chars(0, ";", 0));
                 assign_variable();
             }
-            else{ // recall
+            else{                            // recall
                 ungetstring(eq);
                 recall_variable(text, text_ptr, -1);
             }
@@ -345,11 +360,12 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
         print_int(write_ptr);
         return 0;
     }
-    else if(strcmp(text, "int") == 0){
-        free(read_chars(1, "#", 0)); // space
-        char* var_name = read_chars(1, "#", 0);
-        char* left_brackets = read_chars(1, "#", 1); // array
-        if(strcmp(left_brackets, "[") == 0){
+    else if(strcmp(text, "int") == 0){            // var or func
+        free(read_chars(1, "#", 1));              // space
+        char* var_name = read_chars(1, "#", 1);
+        char* next_token = read_chars(1, "#", 1); // array
+        fprintf(write_ptr, "; next tok %s\n", next_token);
+        if(strcmp(next_token, "[") == 0){
             char* size = read_chars(1, "#", 1);
             char* right_brackets = read_chars(1, "#", 1);
             mmap(atoi(size));
@@ -357,21 +373,30 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
             free(size);
             free(right_brackets);
         }
-        else{ // primitive
-            ungetstring(left_brackets);
-            free(read_chars(1, "#", 0)); // =
-            free(read_chars(0, match, 0));
-            set_variable(var_name);
-            free(var_name);
+        else if(strcmp(next_token, "(") == 0){    // function
+            fprintf(write_ptr,
+                "\nfunc %d: \n", idem_key);
+            free(read_chars(0, ")", 0));
+            free(read_chars(1, "#", 0));          // {
+            fprintf(write_ptr, "ret \n");
         }
-        free(left_brackets);
+        else{                                     // primitive
+            ungetstring(next_token);
+            char* eq = read_chars(1, "#", 1);          // =
+            if(strcmp(eq, "=") == 0) set_variable(var_name);
+            else set_variable_function(var_name);
+            free(read_chars(0, match, 0));
+            free(eq);
+        }
+        free(next_token);
+        free(var_name);
         return 0;
     }
     else if(strcmp(text, "if") == 0){
-        free(read_chars(1, "#", 0)); // (
+        free(read_chars(1, "#", 0));              // (
         cond_if(idem_key);
         fprintf(write_ptr, "cond_if%d: \n", idem_key);
-        free(read_chars(1, "#", 0)); // {
+        free(read_chars(1, "#", 0));              // {
         fprintf(write_ptr, 
             "jmp block%d \n"
             "block%d: \n", idem_key, idem_key);
@@ -382,14 +407,16 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
     else if(strcmp(text, "while") == 0){
         fprintf(write_ptr, "jmp pre_while%d \n", idem_key);
         fprintf(write_ptr, "pre_while%d: \n", idem_key);
-        free(read_chars(1, "#", 0)); // (
+        free(read_chars(1, "#", 0));              // (
         cond_while(idem_key);
         fprintf(write_ptr, "cond_while%d: \n", idem_key);
-        free(read_chars(1, "#", 0)); // {
+        free(read_chars(1, "#", 0));              // {
         fprintf(write_ptr, 
             "jmp pre_while%d \n"
             "block%d: \n", idem_key, idem_key);
         return 1;
+    }
+    else if(strcmp(text, "void") == 0){
     }
     else{
         return 0;
@@ -459,6 +486,7 @@ void compile(char *input_file){
     read_ptr = fopen(read_path, "r");
     write_ptr = fopen(write_path, "w");
     vars = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    vars_local = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
 
     fprintf(write_ptr,
         "global _start \n" 

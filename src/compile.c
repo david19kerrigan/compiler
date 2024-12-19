@@ -7,13 +7,12 @@
 
 static FILE* read_ptr = NULL;
 static FILE* write_ptr = NULL; 
-static char** vars = NULL;
-static int vars_ptr = 0;
+static char** vars_global = NULL;
+static int vars_ptr_global = 0;
 static char** vars_local = NULL;
 static int vars_ptr_local = 0;
 static char** funcs = NULL;
 static int funcs_ptr = 0;
-static int level = 0;
 static int counter = 0;
 static int arg_ptr = 0;
 static char* arguments[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
@@ -21,6 +20,21 @@ static const char* build_dir = "build/";
 static const char* src_dir = "src/";
 static const int DEFAULT_SIZE = 32;
 static const int align = 32;
+
+int find_in_array(char* text, char** arr, int arr_ptr){
+    int offset = -1;
+    for(int i = 0; i < arr_ptr; ++i){
+        if(strcmp(arr[i], text) == 0) offset = i;
+    }
+    return offset;
+}
+
+void free_array(char** arr, int arr_ptr){
+    for(int i = 0; i < arr_ptr; ++i){
+        free(arr[i]);
+    }
+    free(arr);
+}
 
 void assign_variable(){
     fprintf(write_ptr,
@@ -250,14 +264,6 @@ void store_number(char* num, int* num_ptr){
     }
 }
 
-int find_variable(char* text){
-    int offset = -1;
-    for(int i = 0; i < vars_ptr; ++i){
-        if(strcmp(vars[i], text) == 0) offset = i;
-    }
-    return offset;
-}
-
 void set_variable(char* text){
     fprintf(write_ptr, "; set |%s|\n", text);
     fprintf(write_ptr,
@@ -354,6 +360,8 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
         }
         free(left_brackets);
     }
+    //else if(find_function(text)){
+    //}
 }
 
 int handle_token(char* text, int* text_ptr, char* match, int idem_key){
@@ -430,23 +438,19 @@ char* read_chars(int length, char* match, int term_early){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
-    ++level;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
         //fprintf(write_ptr, "; cur : %s \n", &cur);
         //fprintf(write_ptr, "; text: %s \n", text);
-        //fprintf(write_ptr, "; lvl :[%d] \n", level);
         //fprintf(write_ptr, "; -------------- \n");
         if(strcmp(text, match) == 0 || (term_early && is_changed && is_terminated)){
             ungetc(cur, read_ptr);
-            --level;
             return text;
         }
         else if(text[0] && strchr("({[", text[0]) != NULL){
             ungetc(cur, read_ptr);
             match_char(text);
             if(length > 0 && --length == 0){
-                --level;
                 return text;
             }
             text_ptr = 0;
@@ -461,7 +465,6 @@ char* read_chars(int length, char* match, int term_early){
                 handle_operator(text, &text_ptr, match) ||
                 handle_token(text, &text_ptr, match, counter++)
             ){
-                --level;
                 return text;
             }
             text_ptr = 0;
@@ -506,16 +509,9 @@ void compile(char *input_file){
 
     fprintf(write_ptr, "call exit\n");
 
-    for(int i = 0; i < vars_ptr; ++i){
-        free(vars[i]);
-    }
-    for(int i = 0; i < vars_ptr_local; ++i){
-        free(vars_ptr_local[i]);
-    }
-    for(int i = 0; i < funcs; ++i){
-        free(funcs[i]);
-    }
-    free(vars);
+    free_array(vars, vars_ptr);
+    free_array(vars_local, vars_local_ptr);
+    free_array(funcs, funcs_ptr);
 
     pclose(read_ptr);
     fclose(write_ptr);

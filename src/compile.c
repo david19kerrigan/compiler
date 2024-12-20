@@ -373,8 +373,8 @@ int recall_or_update_variable(char* text, int* text_ptr, char* match){
         free(left_brackets);
         return 1;
     }
-    //else if(find_function(text)){
-    //}
+    // else if(find_function(text)){
+    // }
     return 0;
 }
 
@@ -454,23 +454,30 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
     }
 }
 
+else if(text[0] && strchr("({[", text[0]) != NULL){                      // match left delimiter
+    ungetc(cur, read_ptr);
+    match_char(text);
+    text_ptr = 0;
+    text[0] = '\0';
+}
 
-char* read_chars(char* match){
+void match_token(char* text){
+    char* token = read_token();
+    while(strcmp(text, token) == 0){
+        token = read_token();
+    }
+}
+
+char* read_token(){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        fprintf(write_ptr, "; text: %s \n", text);
+        //fprintf(write_ptr, "; text: %s \n", text);
         if(strcmp(text, match) == 0 || (strcmp(match, "#") == 0 && is_changed)){ // exit early
             ungetc(cur, read_ptr);
             return text;
-        }
-        else if(text[0] && strchr("({[", text[0]) != NULL){                      // match left delimiter
-            ungetc(cur, read_ptr);
-            match_char(text);
-            text_ptr = 0;
-            text[0] = '\0';
         }
         else if(is_changed){                                                     // text changing
             ungetc(cur, read_ptr);

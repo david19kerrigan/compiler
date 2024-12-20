@@ -8,13 +8,13 @@
 static FILE* read_ptr = NULL;
 static FILE* write_ptr = NULL; 
 static char** vars_global = NULL;
-static int vars_ptr_global = 0;
+static int vars_global_ptr = 0;
 static char** vars_local = NULL;
-static int vars_ptr_local = 0;
-static char** funcs = NULL;
-static int funcs_ptr = 0;
+static int vars_local_ptr = 0;
+static char** functions = NULL;
+static int functions_ptr = 0;
 static int counter = 0;
-static int arg_ptr = 0;
+static int arguments_ptr = 0;
 static char* arguments[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 static const char* build_dir = "build/";
 static const char* src_dir = "src/";
@@ -164,7 +164,7 @@ void idiv(){
         "push rax \n\n");
 }
 
-int handle_operator(char* text, int* text_ptr, char* match){
+int handler_math_or_bool_operator(char* text, int* text_ptr, char* match){
     if(strcmp(text, "-") == 0){
         free(read_chars(0, match, 0));
         sub();
@@ -256,36 +256,38 @@ void match_char(char* text){
     else if(strcmp(text, "[") == 0) free(read_chars(0, "]", 0));
 }
 
-void store_number(char* num, int* num_ptr){
+int store_number(char* num, int* num_ptr){
     if(*num_ptr > 0 && is_num(num[*num_ptr-1])){
         fprintf(write_ptr, "push %s \n", num);
         *num_ptr = 0;
         num[0] = '\0';
+        return 1;
     }
+    return 0;
 }
 
 void set_variable(char* text){
     fprintf(write_ptr, "; set |%s|\n", text);
     fprintf(write_ptr,
         "pop rax \n"
-        "mov [rbp-%d], rax \n\n", vars_ptr * align + align);
-    vars[vars_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars[vars_ptr++], text);
+        "mov [rbp-%d], rax \n\n", vars_global_ptr * align + align);
+    vars_global[vars_global_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars_global[vars_global_ptr++], text);
 }
 
-void set_variable_function(char* text){
+void set_function_parameter_variable(char* text){
     fprintf(write_ptr, "; set func var |%s|\n", text);
-    fprintf(write_ptr, "mov [rbp-%d], %s \n\n", vars_ptr_local * align + align, arguments[vars_ptr_local]);
-    vars_local[vars_ptr_local] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars_local[vars_ptr_local++], text);
+    fprintf(write_ptr, "mov [rbp-%d], %s \n\n", vars_local_ptr * align + align, arguments[vars_local_ptr]);
+    vars_local[vars_local_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars_local[vars_local_ptr++], text);
 }
 
 void recall_variable(char* text, int* text_ptr, int index){
     if(*text_ptr > 0 && is_letter(text[*text_ptr-1])){
         fprintf(write_ptr, "; recall |%s|\n", text);
-        int offset = find_variable(text);
+        int offset = find_in_array(text, vars_global, vars_global_ptr);
         if(offset < 0) return;
-        if(index > -1){
+        if(index > -1){ // array
             fprintf(write_ptr,
                 "mov rbx, [rbp-%d] \n"
                 "pop rax \n"
@@ -294,7 +296,7 @@ void recall_variable(char* text, int* text_ptr, int index){
                 "mov rax, [rbx] \n"
                 "push rax \n\n", offset * align + align, align);
         }
-        else{
+        else{           // primitive
             fprintf(write_ptr,
                 "mov rax, rbp \n"
                 "sub rax, %d \n"
@@ -308,9 +310,9 @@ void recall_variable(char* text, int* text_ptr, int index){
 
 void update_variable(char* text, int index){
     fprintf(write_ptr, "; update |%s|\n", text);
-    int offset = find_variable(text);
+    int offset = find_in_array(text, vars_global, vars_global_ptr);
     if(offset < 0) return;
-    if(index > -1){
+    if(index > -1){ // array
         fprintf(write_ptr,
             "mov rbx, [rbp-%d] \n"
             "pop rax \n"
@@ -318,7 +320,7 @@ void update_variable(char* text, int index){
             "add rbx, rax \n"
             "push rbx \n", offset * align + align, align);
     }
-    else{
+    else{          // primitive
         fprintf(write_ptr, 
             "mov rax, rbp \n"
             "sub rax, %d \n"
@@ -326,8 +328,8 @@ void update_variable(char* text, int index){
     }
 }
 
-void recall_or_update_variable(char* text, int* text_ptr, char* match){
-    if(find_variable(text) >= 0){
+int recall_or_update_variable(char* text, int* text_ptr, char* match){
+    if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
         char* left_brackets = read_chars(1, "#", 1);
         if(strcmp(left_brackets, "[") == 0){ // array
             ungetstring(left_brackets);
@@ -359,9 +361,42 @@ void recall_or_update_variable(char* text, int* text_ptr, char* match){
             free(eq);
         }
         free(left_brackets);
+        return 1;
     }
     //else if(find_function(text)){
     //}
+    return 0;
+}
+
+void handle_function_or_variable(){
+        free(read_chars(1, "#", 1));              // space
+        char* var_name = read_chars("#", 1);
+        char* next_token = read_chars("#", 1); // array
+        if(strcmp(next_token, "[") == 0){
+            char* size = read_chars("#", 1);
+            char* right_brackets = read_chars("#", 1);
+            mmap(atoi(size));
+            set_variable(var_name);
+            free(size);
+            free(right_brackets);
+        }
+        else if(strcmp(next_token, "(") == 0){    // function
+            fprintf(write_ptr, "\nfunc %d: \n", idem_key);
+            free(read_chars(")", 0));
+            free(read_chars("#", 1)); // {
+            free(read_chars("}", 0));
+            fprintf(write_ptr, "ret \n");
+        }
+        else{                                     // primitive
+            ungetstring(next_token);
+            char* eq = read_chars(1, "#", 1);          // =
+            if(strcmp(eq, "=") == 0) set_variable(var_name);
+            else set_function_parameter_variable(var_name);
+            free(read_chars(0, match, 0));
+            free(eq);
+        }
+        free(next_token);
+        free(var_name);
 }
 
 int handle_token(char* text, int* text_ptr, char* match, int idem_key){
@@ -371,39 +406,12 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
         return 0;
     }
     else if(strcmp(text, "int") == 0){            // var or func
-        free(read_chars(1, "#", 1));              // space
-        char* var_name = read_chars(1, "#", 1);
-        char* next_token = read_chars(1, "#", 1); // array
-        fprintf(write_ptr, "; next tok %s\n", next_token);
-        if(strcmp(next_token, "[") == 0){
-            char* size = read_chars(1, "#", 1);
-            char* right_brackets = read_chars(1, "#", 1);
-            mmap(atoi(size));
-            set_variable(var_name);
-            free(size);
-            free(right_brackets);
-        }
-        else if(strcmp(next_token, "(") == 0){    // function
-            fprintf(write_ptr,
-                "\nfunc %d: \n", idem_key);
-            free(read_chars(0, ")", 0));
-            free(read_chars(1, "#", 0));          // {
-            fprintf(write_ptr, "ret \n");
-        }
-        else{                                     // primitive
-            ungetstring(next_token);
-            char* eq = read_chars(1, "#", 1);          // =
-            if(strcmp(eq, "=") == 0) set_variable(var_name);
-            else set_variable_function(var_name);
-            free(read_chars(0, match, 0));
-            free(eq);
-        }
-        free(next_token);
-        free(var_name);
+        handle_function_or_variable();
         return 0;
     }
     else if(strcmp(text, "if") == 0){
-        free(read_chars(1, "#", 0));              // (
+        free(read_chars("#", 1)); // (
+        free(read_chars(")", 0));              
         cond_if(idem_key);
         fprintf(write_ptr, "cond_if%d: \n", idem_key);
         free(read_chars(1, "#", 0));              // {
@@ -412,11 +420,10 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
             "block%d: \n", idem_key, idem_key);
         return 1;
     }
-    else if(strcmp(text, "else") == 0){
-    }
     else if(strcmp(text, "while") == 0){
-        fprintf(write_ptr, "jmp pre_while%d \n", idem_key);
-        fprintf(write_ptr, "pre_while%d: \n", idem_key);
+        fprintf(write_ptr, 
+            "jmp pre_while%d \n"
+            "pre_while%d: \n", idem_key, idem_key);
         free(read_chars(1, "#", 0));              // (
         cond_while(idem_key);
         fprintf(write_ptr, "cond_while%d: \n", idem_key);
@@ -434,35 +441,29 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
 }
 
 
-char* read_chars(int length, char* match, int term_early){
+char* read_chars(char* match, int term_early){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        //fprintf(write_ptr, "; cur : %s \n", &cur);
         //fprintf(write_ptr, "; text: %s \n", text);
         //fprintf(write_ptr, "; -------------- \n");
-        if(strcmp(text, match) == 0 || (term_early && is_changed && is_terminated)){
+        if(strcmp(text, match) == 0 || (term_early && is_changed)){ // exit early
             ungetc(cur, read_ptr);
             return text;
         }
-        else if(text[0] && strchr("({[", text[0]) != NULL){
+        else if(text[0] && strchr("({[", text[0]) != NULL){                          // match left delimiter
             ungetc(cur, read_ptr);
             match_char(text);
-            if(length > 0 && --length == 0){
-                return text;
-            }
             text_ptr = 0;
             text[0] = '\0';
         }
-        else if(is_changed){
+        else if(is_changed){                                                         // text changing
             ungetc(cur, read_ptr);
-            store_number(text, &text_ptr);
-            recall_or_update_variable(text, &text_ptr, match);
-            if(
-                is_terminated ||
-                handle_operator(text, &text_ptr, match) ||
+            if(store_number(text, &text_ptr) || recall_or_update_variable(text, &text_ptr, match)) {}
+            else if(
+                handler_math_or_bool_operator(text, &text_ptr, match) ||
                 handle_token(text, &text_ptr, match, counter++)
             ){
                 return text;
@@ -475,7 +476,7 @@ char* read_chars(int length, char* match, int term_early){
             text[text_ptr] = '\0';
         }
     }
-    if(feof(read_ptr) != 0){
+    if(feof(read_ptr) != 0){                                                         // store suffix
         store_number(text, &text_ptr);
     }
 }
@@ -490,9 +491,9 @@ void compile(char *input_file){
 
     read_ptr = fopen(read_path, "r");
     write_ptr = fopen(write_path, "w");
-    vars = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    vars_global = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
     vars_local = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
-    funcs = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    functions = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
 
     fprintf(write_ptr,
         "global _start \n" 
@@ -503,15 +504,13 @@ void compile(char *input_file){
         "_start: \n"
         "mov rbp, rsp \n"); 
 
-    while(feof(read_ptr) == 0){
-        free(read_chars(0, ";", 0));
-    }
+    free(read_chars(0, ";", 0));
 
     fprintf(write_ptr, "call exit\n");
 
-    free_array(vars, vars_ptr);
+    free_array(vars_global, vars_global_ptr);
     free_array(vars_local, vars_local_ptr);
-    free_array(funcs, funcs_ptr);
+    free_array(functions, functions_ptr);
 
     pclose(read_ptr);
     fclose(write_ptr);

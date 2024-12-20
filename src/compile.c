@@ -42,9 +42,7 @@ int check_next_word(char* text){
         printf("Expected %s found %s", next, text);
         exit(0);
     }
-}
-
-int match_delimiter(char* text){
+    free(next);
 }
 
 void assign_variable(){
@@ -177,52 +175,52 @@ void idiv(){
 
 int handler_math_or_bool_operator(char* text, int* text_ptr, char* match){
     if(strcmp(text, "-") == 0){
-        free(read_chars(0, match, 0));
+        free(read_chars(match));
         sub();
         return 1;
     }
     else if(strcmp(text, "+") == 0){
-        free(read_chars(0, match, 0));
+        free(read_chars(match));
         add();
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        free(read_chars(1, match, 0));
+        free(read_chars(match));
         mul();
         return 0;
     }
     else if(strcmp(text, "/") == 0){
-        free(read_chars(1, match, 0));
+        free(read_chars(match));
         idiv();
         return 0;
     }
     else if(strcmp(text, ">") == 0){
-        free(read_chars(1, match, 0));
+        free(read_chars(match));
         greater();
         return 0;
     }
     else if(strcmp(text, "<") == 0){
-        free(read_chars(1, match, 0));
+        free(read_chars(match));
         less();
         return 0;
     }
     else if(strcmp(text, "==") == 0){
-        free(read_chars(1, match, 0));
+        free(read_chars(match));
         equal();
         return 0;
     }
     else if(strcmp(text, "!=") == 0){
-        free(read_chars(1, match, 0));
+        free(read_chars(match));
         equal();
         return 0;
     }
     else if(strcmp(text, "||") == 0){
-        free(read_chars(0, match, 0));
+        free(read_chars(match));
         or();
         return 1;
     }
     else if(strcmp(text, "&&") == 0){
-        free(read_chars(0, match, 0));
+        free(read_chars(match));
         and();
         return 1;
     }
@@ -262,9 +260,9 @@ void ungetstring(char* text){
 }
 
 void match_char(char* text){
-    if(strcmp(text, "(") == 0) free(read_chars(0, ")", 0));
-    else if(strcmp(text, "{") == 0) free(read_chars(0, "}", 0));
-    else if(strcmp(text, "[") == 0) free(read_chars(0, "]", 0));
+    if(strcmp(text, "(") == 0) free(read_chars(")"));
+    else if(strcmp(text, "{") == 0) free(read_chars("}"));
+    else if(strcmp(text, "[") == 0) free(read_chars("]"));
 }
 
 int store_number(char* num, int* num_ptr){
@@ -379,7 +377,7 @@ int recall_or_update_variable(char* text, int* text_ptr, char* match){
     return 0;
 }
 
-void handle_function_or_variable(){
+void handle_function_or_variable(char* match, int idem_key){
         check_next_word(" ");
         char* var_name = read_chars("#");
         char* next_token = read_chars("#"); 
@@ -418,7 +416,7 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
         return 0;
     }
     else if(strcmp(text, "int") == 0){            // var or func
-        handle_function_or_variable();
+        handle_function_or_variable(match, idem_key);
         return 0;
     }
     else if(strcmp(text, "if") == 0){
@@ -464,17 +462,17 @@ char* read_chars(char* match){
         int cur = fgetc(read_ptr);
         //fprintf(write_ptr, "; text: %s \n", text);
         //fprintf(write_ptr, "; -------------- \n");
-        if(strcmp(text, match) == 0 || (match == '#' && is_changed)){ // exit early
+        if(strcmp(text, match) == 0 || (strcmp(match, "#") == 0 && is_changed)){ // exit early
             ungetc(cur, read_ptr);
             return text;
         }
-        else if(text[0] && strchr("({[", text[0]) != NULL){                          // match left delimiter
+        else if(text[0] && strchr("({[", text[0]) != NULL){                      // match left delimiter
             ungetc(cur, read_ptr);
             match_char(text);
             text_ptr = 0;
             text[0] = '\0';
         }
-        else if(is_changed){                                                         // text changing
+        else if(is_changed){                                                     // text changing
             ungetc(cur, read_ptr);
             if(store_number(text, &text_ptr) || recall_or_update_variable(text, &text_ptr, match)) {}
             else if(
@@ -491,7 +489,7 @@ char* read_chars(char* match){
             text[text_ptr] = '\0';
         }
     }
-    if(feof(read_ptr) != 0){                                                         // store suffix
+    if(feof(read_ptr) != 0){                                                     // store suffix
         store_number(text, &text_ptr);
     }
 }
@@ -519,7 +517,9 @@ void compile(char *input_file){
         "_start: \n"
         "mov rbp, rsp \n"); 
 
-    free(read_chars(0, ";", 0));
+    while(feof(read_ptr) == 0){
+        free(read_chars(";"));
+    }
 
     fprintf(write_ptr, "call exit\n");
 

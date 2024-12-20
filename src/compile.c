@@ -36,8 +36,9 @@ void free_array(char** arr, int arr_ptr){
     free(arr);
 }
 
-int check_next_word(char* text){
+void check_next_word(char* text){
     char* next = read_chars("#");
+    if(!next) return;
     if(strcmp(next, text) != 0){
         printf("Expected %s found %s", next, text);
         exit(0);
@@ -460,8 +461,7 @@ char* read_chars(char* match){
     int text_ptr = 0;
     while(feof(read_ptr) == 0){
         int cur = fgetc(read_ptr);
-        //fprintf(write_ptr, "; text: %s \n", text);
-        //fprintf(write_ptr, "; -------------- \n");
+        fprintf(write_ptr, "; text: %s \n", text);
         if(strcmp(text, match) == 0 || (strcmp(match, "#") == 0 && is_changed)){ // exit early
             ungetc(cur, read_ptr);
             return text;

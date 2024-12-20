@@ -36,6 +36,17 @@ void free_array(char** arr, int arr_ptr){
     free(arr);
 }
 
+int check_next_word(char* text){
+    char* next = read_chars("#");
+    if(strcmp(next, text) != 0){
+        printf("Expected %s found %s", next, text);
+        exit(0);
+    }
+}
+
+int match_delimiter(char* text){
+}
+
 void assign_variable(){
     fprintf(write_ptr,
         "pop rax \n"
@@ -330,14 +341,14 @@ void update_variable(char* text, int index){
 
 int recall_or_update_variable(char* text, int* text_ptr, char* match){
     if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
-        char* left_brackets = read_chars(1, "#", 1);
+        char* left_brackets = read_chars("#");
         if(strcmp(left_brackets, "[") == 0){ // array
             ungetstring(left_brackets);
-            read_chars(1, "#", 0);
-            char* eq = read_chars(1, "#", 1);
+            read_chars("#");
+            char* eq = read_chars("#");
             if(strcmp(eq, "=") == 0){        // update
                 update_variable(text, 1);
-                free(read_chars(0, ";", 0));
+                free(read_chars(";"));
                 assign_variable();
             }
             else{                            // recall
@@ -348,10 +359,10 @@ int recall_or_update_variable(char* text, int* text_ptr, char* match){
         }
         else{                                // primitive
             ungetstring(left_brackets);
-            char* eq = read_chars(1, "#", 1);
+            char* eq = read_chars("#");
             if(strcmp(eq, "=") == 0){        // update
                 update_variable(text, -1);
-                free(read_chars(0, ";", 0));
+                free(read_chars(";"));
                 assign_variable();
             }
             else{                            // recall
@@ -369,12 +380,12 @@ int recall_or_update_variable(char* text, int* text_ptr, char* match){
 }
 
 void handle_function_or_variable(){
-        free(read_chars(1, "#", 1));              // space
-        char* var_name = read_chars("#", 1);
-        char* next_token = read_chars("#", 1); // array
-        if(strcmp(next_token, "[") == 0){
-            char* size = read_chars("#", 1);
-            char* right_brackets = read_chars("#", 1);
+        check_next_word(" ");
+        char* var_name = read_chars("#");
+        char* next_token = read_chars("#"); 
+        if(strcmp(next_token, "[") == 0){  // array
+            char* size = read_chars("#");
+            char* right_brackets = read_chars("#");
             mmap(atoi(size));
             set_variable(var_name);
             free(size);
@@ -382,17 +393,17 @@ void handle_function_or_variable(){
         }
         else if(strcmp(next_token, "(") == 0){    // function
             fprintf(write_ptr, "\nfunc %d: \n", idem_key);
-            free(read_chars(")", 0));
-            free(read_chars("#", 1)); // {
-            free(read_chars("}", 0));
+            free(read_chars(")"));
+            check_next_word("{");
+            free(read_chars("}"));
             fprintf(write_ptr, "ret \n");
         }
         else{                                     // primitive
             ungetstring(next_token);
-            char* eq = read_chars(1, "#", 1);          // =
+            char* eq = read_chars("#");
             if(strcmp(eq, "=") == 0) set_variable(var_name);
             else set_function_parameter_variable(var_name);
-            free(read_chars(0, match, 0));
+            free(read_chars(match));
             free(eq);
         }
         free(next_token);
@@ -401,7 +412,8 @@ void handle_function_or_variable(){
 
 int handle_token(char* text, int* text_ptr, char* match, int idem_key){
     if(strcmp(text, "print") == 0){
-        free(read_chars(1, "#", 0));
+        check_next_word("(");
+        free(read_chars(")"));              
         print_int(write_ptr);
         return 0;
     }
@@ -410,11 +422,12 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
         return 0;
     }
     else if(strcmp(text, "if") == 0){
-        free(read_chars("#", 1)); // (
-        free(read_chars(")", 0));              
+        check_next_word("(");
+        free(read_chars(")"));              
         cond_if(idem_key);
         fprintf(write_ptr, "cond_if%d: \n", idem_key);
-        free(read_chars(1, "#", 0));              // {
+        check_next_word("{");
+        free(read_chars("}")); 
         fprintf(write_ptr, 
             "jmp block%d \n"
             "block%d: \n", idem_key, idem_key);
@@ -424,10 +437,12 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
         fprintf(write_ptr, 
             "jmp pre_while%d \n"
             "pre_while%d: \n", idem_key, idem_key);
-        free(read_chars(1, "#", 0));              // (
+        check_next_word("(");
+        free(read_chars(")"));
         cond_while(idem_key);
         fprintf(write_ptr, "cond_while%d: \n", idem_key);
-        free(read_chars(1, "#", 0));              // {
+        check_next_word("{");
+        free(read_chars("}")); 
         fprintf(write_ptr, 
             "jmp pre_while%d \n"
             "block%d: \n", idem_key, idem_key);
@@ -441,7 +456,7 @@ int handle_token(char* text, int* text_ptr, char* match, int idem_key){
 }
 
 
-char* read_chars(char* match, int term_early){
+char* read_chars(char* match){
     char *text = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     text[0] = '\0';
     int text_ptr = 0;
@@ -449,7 +464,7 @@ char* read_chars(char* match, int term_early){
         int cur = fgetc(read_ptr);
         //fprintf(write_ptr, "; text: %s \n", text);
         //fprintf(write_ptr, "; -------------- \n");
-        if(strcmp(text, match) == 0 || (term_early && is_changed)){ // exit early
+        if(strcmp(text, match) == 0 || (match == '#' && is_changed)){ // exit early
             ungetc(cur, read_ptr);
             return text;
         }

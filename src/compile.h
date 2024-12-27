@@ -8,10 +8,13 @@ void add();
 void sub();
 void idiv();
 char* read_chars(char* match);
-int handle_token(char* text, int* text_ptr, char* match, int idem_key);
+int handle_token(char* text);
 void print_int();
 int is_num(char in);
 int is_operator(char in);
 int is_letter(char in);
 int get_type(char in);
+char* read_token();
+void match_token();
+void check_next_word();
 

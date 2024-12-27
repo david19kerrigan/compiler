@@ -164,52 +164,53 @@ void idiv(){
 
 int handle_operator(char* text, char* match){
     if(strcmp(text, "-") == 0){
-        match_token(";");
+        read_until_token(";");
         sub();
         return 1;
     }
     else if(strcmp(text, "+") == 0){
-        match_token(match);
+        // use a queue that is called when the matching delimeter is found
+        // append "add" to this queue
         add();
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        match_token(";");
+        read_token();
         mul();
-        return 0;
+        return 1;
     }
     else if(strcmp(text, "/") == 0){
-        match_token(";");
+        read_until_token(";");
         idiv();
         return 0;
     }
     else if(strcmp(text, ">") == 0){
-        match_token(";");
+        read_until_token(";");
         greater();
         return 0;
     }
     else if(strcmp(text, "<") == 0){
-        match_token(";");
+        read_until_token(";");
         less();
         return 0;
     }
     else if(strcmp(text, "==") == 0){
-        match_token(";");
+        read_until_token(";");
         equal();
         return 0;
     }
     else if(strcmp(text, "!=") == 0){
-        match_token(";");
+        read_until_token(";");
         equal();
         return 0;
     }
     else if(strcmp(text, "||") == 0){
-        match_token(";");
+        read_until_token(";");
         or();
         return 1;
     }
     else if(strcmp(text, "&&") == 0){
-        match_token(";");
+        read_until_token(";");
         and();
         return 1;
     }
@@ -247,10 +248,20 @@ void ungetstring(char* text){
     }
 }
 
-void match_char(char* text){
-    if(strcmp(text, "(") == 0) match_token(")");
-    else if(strcmp(text, "{") == 0) match_token("}");
-    else if(strcmp(text, "[") == 0) match_token("]");
+int match_opposite_delimiter(char* text){
+    if(strcmp(text, "(") == 0){
+        read_until_token(")");
+        return 1;
+    }
+    else if(strcmp(text, "{") == 0){
+        read_until_token("}");
+        return 1;
+    }
+    else if(strcmp(text, "[") == 0){
+        read_until_token("]");
+        return 1;
+    }
+    else return 0;
 }
 
 int store_number(char* text){
@@ -399,7 +410,7 @@ void handle_function_or_variable(char* match, int idem_key){
 int handle_token(char* text){
     if(strcmp(text, "print") == 0){
         check_next_word("(");
-        match_token(")");
+        read_until_token(")");
         print_int(write_ptr);
         return 1;
     }
@@ -449,12 +460,11 @@ void check_next_word(char* text){
     }
 }
 
-void match_token(char* text){
+void read_until_token(char* text){
     char* token = NULL;
     while(feof(read_ptr) == 0 || (token == NULL && strcmp(text, token) != 0)){
         token = read_token();
-        store_number(token) || handle_token(token) || handle_operator(token, text);
-        fprintf(write_ptr, "; token: %s\n", token);
+        handle_token(token) || handle_operator(token, text) || match_opposite_delimiter(token);
         free(token);
     }
 }
@@ -464,10 +474,11 @@ char* read_token(){
     text[0] = '\0';
     int text_ptr = 0;
     while(feof(read_ptr) == 0){
-        // fprintf(write_ptr, "; text: %s \n", text);
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
+            fprintf(write_ptr, "; token: %s\n", text);
+            store_number(text);
             return text;
         }
         else{
@@ -502,7 +513,7 @@ void compile(char *input_file){
         "mov rbp, rsp \n"); 
 
     while(feof(read_ptr) == 0){
-        match_token(";");
+        read_until_token(";");
     }
 
     fprintf(write_ptr, "call exit\n");

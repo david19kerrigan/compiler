@@ -1,20 +1,4 @@
-void compile(char* input_file);
-int is_num(char in);
-int is_operator(char in);
-void recall_variable(char* text, int* text_ptr, int offset);
-int find_variable(char* var_name);
-void mul();
-void add();
-void sub();
-void idiv();
-char* read_chars(char* match);
-int handle_token(char* text);
-void print_int();
-int is_num(char in);
-int is_operator(char in);
-int is_letter(char in);
-int get_type(char in);
+void read_until_token(char* text);
+void check_next_word(char* text);
 char* read_token();
-void match_token();
-void check_next_word();
 

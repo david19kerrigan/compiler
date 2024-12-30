@@ -347,6 +347,7 @@ void update_variable_array(char* text){
         "push rbx \n", offset * align + align, align);
 }
 
+// return should_terminate_early
 int recall_or_update_variable(char* text, char* match){
     if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
         char* next = read_token();
@@ -380,7 +381,7 @@ int recall_or_update_variable(char* text, char* match){
         }
         free(eq);
         free(next);
-        return 1;
+        return 0;
     }
     else return 0;
 }
@@ -474,7 +475,8 @@ void read_until_token(char* text){
     while(feof(read_ptr) == 0){
         char* token = read_token();
         // fprintf(write_ptr, "; token: %s ; match: %s\n", token, text);
-        if(recall_or_update_variable(token, text) || handle_token(token, text) || handle_operator(token, text) || strcmp(text, token) == 0){ // terminate early OR match found
+        if(recall_or_update_variable(token, text) || handle_token(token, text) || handle_operator(token, text) || strcmp(text, token) == 0){ 
+            // terminate early OR match found
             free(token);
             break;
         }

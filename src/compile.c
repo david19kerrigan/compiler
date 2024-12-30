@@ -162,22 +162,22 @@ void idiv(){
         "push rax \n\n");
 }
 
+// return should_terminate_early
 int handle_operator(char* text, char* match){
     if(strcmp(text, "-") == 0){
-        read_until_token(";");
+        read_until_token(match);
         sub();
         return 1;
     }
     else if(strcmp(text, "+") == 0){
-        // use a queue that is called when the matching delimeter is found
-        // append "add" to this queue
+        read_until_token(match);
         add();
         return 1;
     }
     else if(strcmp(text, "*") == 0){
         read_token();
         mul();
-        return 1;
+        return 0;
     }
     else if(strcmp(text, "/") == 0){
         read_until_token(";");
@@ -248,28 +248,22 @@ void ungetstring(char* text){
     }
 }
 
-int match_opposite_delimiter(char* text){
+void match_opposite_delimiter(char* text){
     if(strcmp(text, "(") == 0){
         read_until_token(")");
-        return 1;
     }
     else if(strcmp(text, "{") == 0){
         read_until_token("}");
-        return 1;
     }
     else if(strcmp(text, "[") == 0){
         read_until_token("]");
-        return 1;
     }
-    else return 0;
 }
 
-int store_number(char* text){
+void store_number(char* text){
     if(strcmp(text, "") != 0 && is_num(*text)){
         fprintf(write_ptr, "push %s \n", text);
-        return 1;
     }
-    else return 0;
 }
 
 /*
@@ -407,12 +401,11 @@ void handle_function_or_variable(char* match, int idem_key){
 }
 */
 
-int handle_token(char* text){
+void handle_token(char* text){
     if(strcmp(text, "print") == 0){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
-        return 1;
     }
     /*
     else if(strcmp(text, "int") == 0){            // var or func
@@ -449,7 +442,6 @@ int handle_token(char* text){
     else if(strcmp(text, "void") == 0){
     }
     */
-    else return 0;
 }
 
 void check_next_word(char* text){
@@ -461,10 +453,15 @@ void check_next_word(char* text){
 }
 
 void read_until_token(char* text){
-    char* token = NULL;
-    while(feof(read_ptr) == 0 || (token == NULL && strcmp(text, token) != 0)){
-        token = read_token();
-        handle_token(token) || handle_operator(token, text) || match_opposite_delimiter(token);
+    while(feof(read_ptr) == 0){
+        char* token = read_token();
+        //fprintf(write_ptr, "; token: %s ; match: %s\n", token, text);
+        if(handle_operator(token, text) || strcmp(text, token) == 0){ // terminate early OR match found
+            free(token);
+            break;
+        }
+        handle_token(token);
+        match_opposite_delimiter(token);
         free(token);
     }
 }
@@ -477,7 +474,6 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            fprintf(write_ptr, "; token: %s\n", text);
             store_number(text);
             return text;
         }

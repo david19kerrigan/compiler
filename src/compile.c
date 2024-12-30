@@ -175,7 +175,7 @@ int handle_operator(char* text, char* match){
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        read_token();
+        free(read_token());
         mul();
         return 0;
     }
@@ -217,8 +217,17 @@ int handle_operator(char* text, char* match){
     else return 0;
 }
 
-int is_num(char in){
+int is_num_char(char in){
     return strchr("0123456789", in) != NULL;
+}
+
+int is_num_str(char* text, int text_ptr){
+    for(int i = 0; i < text_ptr; ++i){
+        if(!is_num_char(text[i])){
+            return 0;
+        }
+    }
+    return 1;
 }
 
 int is_operator(char in){
@@ -230,15 +239,15 @@ int is_letter(char in){
 }
 
 int get_type(char in){
-    if(is_num(in)) return 0;
+    if(is_num_char(in)) return 0;
     else if(is_operator(in)) return 1;
     else if(is_letter(in)) return 2;
     else return 3;
 }
 
 int check_should_terminate(char* text, int text_ptr, char cur){
-    if((text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)) ||
-        (text_ptr == 1 && strchr(";\n ([{", text[0]) != NULL)) return 1;
+    if((text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)) || // changing type
+        (text_ptr == 1 && strchr(";\n ([{", text[0]) != NULL)) return 1; // bracket or newline
     else return 0;
 }
 
@@ -249,24 +258,17 @@ void ungetstring(char* text){
 }
 
 void match_opposite_delimiter(char* text){
-    if(strcmp(text, "(") == 0){
-        read_until_token(")");
-    }
-    else if(strcmp(text, "{") == 0){
-        read_until_token("}");
-    }
-    else if(strcmp(text, "[") == 0){
-        read_until_token("]");
-    }
+    if(strcmp(text, "(") == 0) read_until_token(")");
+    else if(strcmp(text, "{") == 0) read_until_token("}");
+    else if(strcmp(text, "[") == 0) read_until_token("]");
 }
 
-void store_number(char* text){
-    if(strcmp(text, "") != 0 && is_num(*text)){
+void store_number(char* text, int text_ptr){
+    if(is_num_str(text, text_ptr))
         fprintf(write_ptr, "push %s \n", text);
     }
 }
 
-/*
 void set_variable(char* text){
     fprintf(write_ptr, "; set |%s|\n", text);
     fprintf(write_ptr,
@@ -276,6 +278,7 @@ void set_variable(char* text){
     strcpy(vars_global[vars_global_ptr++], text);
 }
 
+/*
 void set_function_parameter_variable(char* text){
     fprintf(write_ptr, "; set func var |%s|\n", text);
     fprintf(write_ptr, "mov [rbp-%d], %s \n\n", vars_local_ptr * align + align, arguments[vars_local_ptr]);
@@ -368,12 +371,14 @@ int recall_or_update_variable(char* text, int* text_ptr, char* match){
     // }
     return 0;
 }
+*/
 
 void handle_function_or_variable(char* match, int idem_key){
         check_next_word(" ");
-        char* var_name = read_chars("#");
-        char* next_token = read_chars("#"); 
-        if(strcmp(next_token, "[") == 0){  // array
+        char* var_name = read_token();
+        char* next_token = read_token();
+        /*
+        if(strcmp(next_token, "[") == 0){         // array
             char* size = read_chars("#");
             char* right_brackets = read_chars("#");
             mmap(atoi(size));
@@ -388,18 +393,18 @@ void handle_function_or_variable(char* match, int idem_key){
             free(read_chars("}"));
             fprintf(write_ptr, "ret \n");
         }
-        else{                                     // primitive
+        */
+        else if(strcmp(next_token, " ") == 0){                                     // primitive
             ungetstring(next_token);
-            char* eq = read_chars("#");
+            char* eq = read_token();
             if(strcmp(eq, "=") == 0) set_variable(var_name);
-            else set_function_parameter_variable(var_name);
-            free(read_chars(match));
+            //else set_function_parameter_variable(var_name);
+            read_until_char(match)); // is this needed?
             free(eq);
         }
         free(next_token);
         free(var_name);
 }
-*/
 
 void handle_token(char* text){
     if(strcmp(text, "print") == 0){
@@ -407,11 +412,10 @@ void handle_token(char* text){
         read_until_token(")");
         print_int(write_ptr);
     }
-    /*
     else if(strcmp(text, "int") == 0){            // var or func
-         handle_function_or_variable(match, idem_key);
-        return 0;
+        handle_function_or_variable(match, idem_key);
     }
+    /*
     else if(strcmp(text, "if") == 0){
         check_next_word("(");
         free(read_chars(")"));              
@@ -447,6 +451,7 @@ void handle_token(char* text){
 void check_next_word(char* text){
     char* next = read_token();
     if(strcmp(next, text) != 0){
+        free(next);
         printf("Expected %s found %s\n", text, next);
         exit(0);
     }
@@ -474,7 +479,7 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            store_number(text);
+            store_number(text, text_ptr);
             return text;
         }
         else{

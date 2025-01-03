@@ -161,14 +161,14 @@ int handle_operator(char* text, char* match){
     }
     else if(strcmp(text, "*") == 0){
         char* next = read_token();
-        match_opposite_delimiter(next); // this clobbers print( if( OR clobbers 4*( 2+(
+        match_opposite_delimiter(next);
         free(next);
         mul();
         return 0;
     }
     else if(strcmp(text, "/") == 0){
         char* next = read_token();
-        match_opposite_delimiter(next); // this clobbers print( if( OR clobbers 4*( 2+(
+        match_opposite_delimiter(next);
         free(next);
         idiv();
         return 0;
@@ -387,7 +387,37 @@ void recall_or_update_variable(char* text){
     }
 }
 
-void handle_function_or_variable(char* match, int idem_key){
+void handle_conditional(char* text, int idem_key){
+    if(strcmp(text, "if") == 0){
+        check_next_word("(");
+        read_until_token(")");
+        fprintf(write_ptr, "; found ) \n");
+        cond_if(idem_key);
+        fprintf(write_ptr, "cond_if%d: \n", idem_key);
+        check_next_word("{");
+        read_until_token("}");
+        fprintf(write_ptr, 
+            "jmp block%d \n"
+            "block%d: \n", idem_key, idem_key);
+    }
+    else if(strcmp(text, "while") == 0){
+        fprintf(write_ptr, 
+            "jmp pre_while%d \n"
+            "pre_while%d: \n", idem_key, idem_key);
+        check_next_word("(");
+        read_until_token(")");
+        cond_while(idem_key);
+        fprintf(write_ptr, "cond_while%d: \n", idem_key);
+        check_next_word("{");
+        read_until_token("}");
+        fprintf(write_ptr, 
+            "jmp pre_while%d \n"
+            "block%d: \n", idem_key, idem_key);
+    }
+}
+
+void handle_function_or_variable(char* text, char* match, int idem_key){
+    if(strcmp(text, "int") == 0){            // var or func
         check_next_word(" ");
         char* var_name = read_token();
         char* next_token = read_token();
@@ -415,6 +445,7 @@ void handle_function_or_variable(char* match, int idem_key){
         }
         free(next_token);
         free(var_name);
+    }
 }
 
 void handle_token(char* text, char* match, int idem_key){
@@ -423,40 +454,8 @@ void handle_token(char* text, char* match, int idem_key){
         read_until_token(")");
         print_int(write_ptr);
     }
-    else if(strcmp(text, "int") == 0){            // var or func
-        handle_function_or_variable(match, counter++);
-    }
-    else if(strcmp(text, "if") == 0){
-        check_next_word("(");
-        read_until_token(")");
-        fprintf(write_ptr, "; found ) \n");
-        cond_if(idem_key);
-        fprintf(write_ptr, "cond_if%d: \n", idem_key);
-        check_next_word("{");
-        read_until_token("}");
-        fprintf(write_ptr, 
-            "jmp block%d \n"
-            "block%d: \n", idem_key, idem_key);
-    }
-    /*
-    else if(strcmp(text, "while") == 0){
-        fprintf(write_ptr, 
-            "jmp pre_while%d \n"
-            "pre_while%d: \n", idem_key, idem_key);
-        check_next_word("(");
-        free(read_chars(")"));
-        cond_while(idem_key);
-        fprintf(write_ptr, "cond_while%d: \n", idem_key);
-        check_next_word("{");
-        free(read_chars("}")); 
-        fprintf(write_ptr, 
-            "jmp pre_while%d \n"
-            "block%d: \n", idem_key, idem_key);
-        return 1;
-    }
-    else if(strcmp(text, "void") == 0){
-    }
-    */
+    handle_function_or_variable(text, match, counter++);
+    handle_conditional(text, idem_key);
 }
 
 void check_next_word(char* text){
@@ -479,7 +478,7 @@ void read_until_token(char* match){
             return;
         }
         handle_token(token, match, counter++);
-        match_opposite_delimiter(token); // this clobbers print( if( OR clobbers 4*( 2+(
+        match_opposite_delimiter(token);
         free(token);
     }
 }

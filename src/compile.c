@@ -160,12 +160,16 @@ int handle_operator(char* text, char* match){
         return 1;
     }
     else if(strcmp(text, "*") == 0){
-        free(read_token());
+        char* next = read_token();
+        match_opposite_delimiter(next); // this clobbers print( if( OR clobbers 4*( 2+(
+        free(next);
         mul();
         return 0;
     }
     else if(strcmp(text, "/") == 0){
-        free(read_token());
+        char* next = read_token();
+        match_opposite_delimiter(next); // this clobbers print( if( OR clobbers 4*( 2+(
+        free(next);
         idiv();
         return 0;
     }
@@ -413,17 +417,14 @@ void handle_function_or_variable(char* match, int idem_key){
         free(var_name);
 }
 
-// return assumes_control_flow
-int handle_token(char* text, char* match, int idem_key){
+void handle_token(char* text, char* match, int idem_key){
     if(strcmp(text, "print") == 0){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
-        return 0;
     }
     else if(strcmp(text, "int") == 0){            // var or func
         handle_function_or_variable(match, counter++);
-        return 0;
     }
     else if(strcmp(text, "if") == 0){
         check_next_word("(");
@@ -436,7 +437,6 @@ int handle_token(char* text, char* match, int idem_key){
         fprintf(write_ptr, 
             "jmp block%d \n"
             "block%d: \n", idem_key, idem_key);
-        return 0;
     }
     /*
     else if(strcmp(text, "while") == 0){
@@ -457,7 +457,6 @@ int handle_token(char* text, char* match, int idem_key){
     else if(strcmp(text, "void") == 0){
     }
     */
-    else return 0;
 }
 
 void check_next_word(char* text){
@@ -474,11 +473,13 @@ void read_until_token(char* match){
     fprintf(write_ptr, "; Looking for %s\n", match);
     while(feof(read_ptr) == 0){
         char* token = read_token();
-        if(handle_operator(token, match) || handle_token(token, match, counter++) // pass control flow
+        if(handle_operator(token, match) // pass control flow
             || strcmp(match, token) == 0){  // match found
             free(token);
             return;
         }
+        handle_token(token, match, counter++);
+        match_opposite_delimiter(token); // this clobbers print( if( OR clobbers 4*( 2+(
         free(token);
     }
 }
@@ -491,10 +492,9 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            fprintf(write_ptr, "; token: |%s|\n", text);
+            //fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
             recall_or_update_variable(text);
-            match_opposite_delimiter(text); // this clobbers print( if( etc
             return text;
         }
         else{

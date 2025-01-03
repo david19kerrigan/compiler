@@ -257,7 +257,7 @@ int get_type(char in){
 
 int check_should_terminate(char* text, int text_ptr, char cur){
     if((text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)) || // changing type
-        (text_ptr == 1 && strchr(";\n ([{", text[0]) != NULL)) return 1; // bracket or newline
+        (text_ptr == 1 && strchr(";\n ([{}])", text[0]) != NULL)) return 1; // bracket or newline
     else return 0;
 }
 
@@ -413,28 +413,32 @@ void handle_function_or_variable(char* match, int idem_key){
         free(var_name);
 }
 
-void handle_token(char* text, char* match){
+// return assumes_control_flow
+int handle_token(char* text, char* match, int idem_key){
     if(strcmp(text, "print") == 0){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
+        return 0;
     }
     else if(strcmp(text, "int") == 0){            // var or func
         handle_function_or_variable(match, counter++);
+        return 0;
     }
-    /*
     else if(strcmp(text, "if") == 0){
         check_next_word("(");
-        free(read_chars(")"));              
+        read_until_token(")");
+        fprintf(write_ptr, "; found ) \n");
         cond_if(idem_key);
         fprintf(write_ptr, "cond_if%d: \n", idem_key);
         check_next_word("{");
-        free(read_chars("}")); 
+        read_until_token("}");
         fprintf(write_ptr, 
             "jmp block%d \n"
             "block%d: \n", idem_key, idem_key);
-        return 1;
+        return 0;
     }
+    /*
     else if(strcmp(text, "while") == 0){
         fprintf(write_ptr, 
             "jmp pre_while%d \n"
@@ -453,26 +457,28 @@ void handle_token(char* text, char* match){
     else if(strcmp(text, "void") == 0){
     }
     */
+    else return 0;
 }
 
 void check_next_word(char* text){
     char* next = read_token();
     if(strcmp(next, text) != 0){
         free(next);
-        printf("Expected %s found %s\n", text, next);
+        fprintf(write_ptr, "; Expected %s found %s\n", text, next);
         exit(0);
     }
+    free(next);
 }
 
 void read_until_token(char* match){
+    fprintf(write_ptr, "; Looking for %s\n", match);
     while(feof(read_ptr) == 0){
         char* token = read_token();
-        if(handle_operator(token, match) // pass control flow
+        if(handle_operator(token, match) || handle_token(token, match, counter++) // pass control flow
             || strcmp(match, token) == 0){  // match found
             free(token);
-            break;
+            return;
         }
-        handle_token(token, match);
         free(token);
     }
 }
@@ -485,10 +491,10 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
+            fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
             recall_or_update_variable(text);
-            match_opposite_delimiter(text);
-            // fprintf(write_ptr, "; token: %s ; match: %s\n", token, match);
+            match_opposite_delimiter(text); // this clobbers print( if( etc
             return text;
         }
         else{

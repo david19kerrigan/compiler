@@ -351,111 +351,121 @@ void update_variable_array(char* text){
         "push rbx \n", offset * align + align, align);
 }
 
-void recall_or_update_variable(char* text){
-    if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
-        char* next = read_token();
-        /*
-        if(strcmp(left_brackets, "[") == 0){ // array
-            ungetstring(left_brackets);
-            read_chars("#");
-            char* eq = read_chars("#");
-            if(strcmp(eq, "=") == 0){        // update
-                update_variable(text, 1);
-                free(read_chars(";"));
-                assign_variable();
-            }
-            else{                            // recall
-                ungetstring(eq);
-                recall_variable(text, text_ptr, 1);
-            }
-            free(eq);
-        }
-        */
-        ungetstring(next);
+void recall_or_update_variable_array(char* text){
+    char* left_brackets = read_token();
+    if(strcmp(left_brackets, "[") == 0){ 
+        ungetstring(left_brackets);
+        check_next_word(" ");
         char* eq = read_token();
         if(strcmp(eq, "=") == 0){        // update
-            update_variable_primitive(text);
+            update_variable_array(text);
             read_until_token(";");
             assign_variable();
         }
         else{                            // recall
             ungetstring(eq);
-            recall_variable_primitive(text);
+            recall_variable_array(text);
         }
         free(eq);
-        free(next);
     }
+    ungetstring(left_brackets);
+    free(left_brackets);
+}
+
+void recall_or_update_variable_primitive(char* text){
+    char* eq = read_token();
+    if(strcmp(eq, "=") == 0){        // update
+        update_variable_primitive(text);
+        read_until_token(";");
+        assign_variable();
+    }
+    else{                            // recall
+        ungetstring(eq);
+        recall_variable_primitive(text);
+    }
+    free(eq);
+}
+
+void recall_or_update_variable(char* text){
+    if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
+        recall_or_update_variable_array(text);
+        recall_or_update_variable_primitive(text);
+    }
+}
+
+void handle_conditional_if(int idem_key){
+    check_next_word("(");
+    read_until_token(")");
+    fprintf(write_ptr, "; found ) \n");
+    cond_if(idem_key);
+    fprintf(write_ptr, "cond_if%d: \n", idem_key);
+    check_next_word("{");
+    read_until_token("}");
+    fprintf(write_ptr, 
+        "jmp block%d \n"
+        "block%d: \n", idem_key, idem_key);
+}
+
+void handle_conditional_while(int idem_key){
+    fprintf(write_ptr, 
+        "jmp pre_while%d \n"
+        "pre_while%d: \n", idem_key, idem_key);
+    check_next_word("(");
+    read_until_token(")");
+    cond_while(idem_key);
+    fprintf(write_ptr, "cond_while%d: \n", idem_key);
+    check_next_word("{");
+    read_until_token("}");
+    fprintf(write_ptr, 
+        "jmp pre_while%d \n"
+        "block%d: \n", idem_key, idem_key);
 }
 
 void handle_conditional(char* text, int idem_key){
-    if(strcmp(text, "if") == 0){
-        check_next_word("(");
-        read_until_token(")");
-        fprintf(write_ptr, "; found ) \n");
-        cond_if(idem_key);
-        fprintf(write_ptr, "cond_if%d: \n", idem_key);
-        check_next_word("{");
-        read_until_token("}");
-        fprintf(write_ptr, 
-            "jmp block%d \n"
-            "block%d: \n", idem_key, idem_key);
-    }
-    else if(strcmp(text, "while") == 0){
-        fprintf(write_ptr, 
-            "jmp pre_while%d \n"
-            "pre_while%d: \n", idem_key, idem_key);
-        check_next_word("(");
-        read_until_token(")");
-        cond_while(idem_key);
-        fprintf(write_ptr, "cond_while%d: \n", idem_key);
-        check_next_word("{");
-        read_until_token("}");
-        fprintf(write_ptr, 
-            "jmp pre_while%d \n"
-            "block%d: \n", idem_key, idem_key);
-    }
+    if(strcmp(text, "if") == 0) handle_conditional_if(idem_key);
+    else if(strcmp(text, "while") == 0) handle_conditional_while;
 }
 
-void handle_function_or_variable(char* text, char* match, int idem_key){
-    if(strcmp(text, "int") == 0){            // var or func
-        check_next_word(" ");
-        char* var_name = read_token();
-        char* next_token = read_token();
-        /*
-        if(strcmp(next_token, "[") == 0){         // array
-            char* size = read_chars("#");
-            char* right_brackets = read_chars("#");
-            mmap(atoi(size));
-            set_variable(var_name);
-            free(size);
-            free(right_brackets);
-        }
-        else if(strcmp(next_token, "(") == 0){    // function
-            fprintf(write_ptr, "\nfunc %d: \n", idem_key);
-            free(read_chars(")"));
-            check_next_word("{");
-            free(read_chars("}"));
-            fprintf(write_ptr, "ret \n");
-        }
-        */
-        if(strcmp(next_token, "=") == 0){                                     // primitive
-            ungetstring(next_token);
-            read_until_token(match);
-            set_variable(var_name);
-        }
-        free(next_token);
-        free(var_name);
-    }
+void handle_array_declaration(char* var_name){
+    char* size = read_token();
+    check_next_word("]");
+    mmap(atoi(size));
+    set_variable(var_name);
+    free(size);
 }
 
-void handle_token(char* text, char* match, int idem_key){
-    if(strcmp(text, "print") == 0){
-        check_next_word("(");
-        read_until_token(")");
-        print_int(write_ptr);
+void handle_primitive_declaration(char* match, char* var_name){
+    read_until_token(match);
+    set_variable(var_name);
+}
+
+void handle_function_declaration(){
+    /*
+    else if(strcmp(next_token, "(") == 0){    // function
+        fprintf(write_ptr, "\nfunc %d: \n", idem_key);
+        free(read_chars(")"));
+        check_next_word("{");
+        free(read_chars("}"));
+        fprintf(write_ptr, "ret \n");
     }
-    handle_function_or_variable(text, match, counter++);
-    handle_conditional(text, idem_key);
+    */
+}
+
+void handle_declaration(char* text, char* match, int idem_key){
+    check_next_word(" ");
+    char* var_name = read_token();
+    char* next_token = read_token();
+    if(strcmp(next_token, "[") == 0) handle_array_declaration(var_name);
+    else if(strcmp(next_token, "=") == 0) handle_primitive_declaration(match, var_name);
+    handle_function_declaration();
+    free(next_token);
+    free(var_name);
+}
+
+void handle_builtin_function(char* text, char* match, int idem_key){
+    check_next_word("(");
+    read_until_token(")");
+    print_int(write_ptr);
 }
 
 void check_next_word(char* text){
@@ -477,7 +487,9 @@ void read_until_token(char* match){
             free(token);
             return;
         }
-        handle_token(token, match, counter++);
+        else if(strcmp(token, "print") == 0) handle_builtin_function(token, match, counter++);
+        else if(strcmp(token, "int") == 0) handle_declaration(token, match, counter++);
+        handle_conditional(token, counter++);
         match_opposite_delimiter(token);
         free(token);
     }

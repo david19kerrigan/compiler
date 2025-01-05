@@ -1,5 +1,6 @@
 # To Do
-- functions -> reqs: local/global/scope vars
+- correct variable scopes
+- functions
 - implement minimal printf
 - malloc, realloc
 

@@ -423,7 +423,7 @@ void handle_conditional_while(int idem_key){
 
 void handle_conditional(char* text, int idem_key){
     if(strcmp(text, "if") == 0) handle_conditional_if(idem_key);
-    else if(strcmp(text, "while") == 0) handle_conditional_while;
+    else if(strcmp(text, "while") == 0) handle_conditional_while(idem_key);
 }
 
 void handle_array_declaration(char* var_name){
@@ -463,9 +463,11 @@ void handle_declaration(char* text, char* match, int idem_key){
 }
 
 void handle_builtin_function(char* text, char* match, int idem_key){
-    check_next_word("(");
-    read_until_token(")");
-    print_int(write_ptr);
+    if(strcmp(text, "print") == 0){
+        check_next_word("(");
+        read_until_token(")");
+        print_int(write_ptr);
+    }
 }
 
 void check_next_word(char* text){
@@ -487,8 +489,8 @@ void read_until_token(char* match){
             free(token);
             return;
         }
-        else if(strcmp(token, "print") == 0) handle_builtin_function(token, match, counter++);
-        else if(strcmp(token, "int") == 0) handle_declaration(token, match, counter++);
+        if(strcmp(token, "int") == 0) handle_declaration(token, match, counter++);
+        handle_builtin_function(token, match, counter++);
         handle_conditional(token, counter++);
         match_opposite_delimiter(token);
         free(token);
@@ -503,7 +505,7 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            //fprintf(write_ptr, "; token: |%s|\n", text);
+            fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
             recall_or_update_variable(text);
             return text;

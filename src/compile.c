@@ -354,13 +354,12 @@ void update_variable_array(char* text){
 void recall_or_update_variable_array(char* text){
     char* left_brackets = read_token();
     if(strcmp(left_brackets, "[") == 0){ 
-        ungetstring(left_brackets);
-        check_next_word(" ");
+        free(read_token());
+        check_next_word("]");
         char* eq = read_token();
         if(strcmp(eq, "=") == 0){        // update
             update_variable_array(text);
             read_until_token(";");
-            assign_variable();
         }
         else{                            // recall
             ungetstring(eq);
@@ -368,7 +367,7 @@ void recall_or_update_variable_array(char* text){
         }
         free(eq);
     }
-    ungetstring(left_brackets);
+    else ungetstring(left_brackets);
     free(left_brackets);
 }
 
@@ -505,7 +504,7 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            fprintf(write_ptr, "; token: |%s|\n", text);
+            // fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
             recall_or_update_variable(text);
             return text;

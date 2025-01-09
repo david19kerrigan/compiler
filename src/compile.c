@@ -26,17 +26,18 @@ void assign_variable(){
         "mov [rbx], rax \n\n");
 }
 
-void mmap(int size){
+void mmap(){
     fprintf(write_ptr,
         "mov rax, 9 \n"
-        "mov rsi, %d \n"
+        "pop rsi \n"
+        "imul rsi, %d \n"
         "mov rdi, 0 \n"
         "mov rdx, 3 \n"
         "mov r10, 34 \n"
         "mov r8, -1 \n"
         "mov r9, 0 \n"
         "syscall \n"
-        "push rax \n", size * align);
+        "push rax \n", align);
 }
 
 void print_int(){
@@ -351,44 +352,52 @@ void update_variable_array(char* text){
         "push rbx \n", offset * align + align, align);
 }
 
-void recall_or_update_variable_array(char* text){
+int recall_or_update_variable_array(char* text){
     char* left_brackets = read_token();
     if(strcmp(left_brackets, "[") == 0){ 
         free(read_token());
         check_next_word("]");
         char* eq = read_token();
         if(strcmp(eq, "=") == 0){        // update
+            fprintf(write_ptr, "; one\n");
             update_variable_array(text);
             read_until_token(";");
+            assign_variable();
         }
         else{                            // recall
+            fprintf(write_ptr, "; two\n");
             ungetstring(eq);
             recall_variable_array(text);
         }
         free(eq);
+        free(left_brackets);
+        return 1;
     }
-    else ungetstring(left_brackets);
-    free(left_brackets);
+    else{
+        ungetstring(left_brackets);
+        free(left_brackets);
+        return 0;
+    }
 }
 
-void recall_or_update_variable_primitive(char* text){
+int recall_or_update_variable_primitive(char* text){
     char* eq = read_token();
     if(strcmp(eq, "=") == 0){        // update
         update_variable_primitive(text);
         read_until_token(";");
         assign_variable();
     }
-    else{                            // recall
+    else{
         ungetstring(eq);
         recall_variable_primitive(text);
     }
     free(eq);
+    return 1;
 }
 
 void recall_or_update_variable(char* text){
     if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
-        recall_or_update_variable_array(text);
-        recall_or_update_variable_primitive(text);
+        recall_or_update_variable_array(text) || recall_or_update_variable_primitive(text);
     }
 }
 
@@ -426,11 +435,10 @@ void handle_conditional(char* text, int idem_key){
 }
 
 void handle_array_declaration(char* var_name){
-    char* size = read_token();
+    free(read_token());
     check_next_word("]");
-    mmap(atoi(size));
+    mmap();
     set_variable(var_name);
-    free(size);
 }
 
 void handle_primitive_declaration(char* match, char* var_name){

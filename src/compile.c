@@ -262,7 +262,7 @@ int get_type(char in){
 
 int check_should_terminate(char* text, int text_ptr, char cur){
     if((text_ptr > 0 && get_type(text[text_ptr-1]) != get_type(cur)) || // changing type
-        (text_ptr == 1 && strchr(";\n ([{}])", text[0]) != NULL)) return 1; // bracket or newline
+        (text_ptr == 1 && strchr(",;\n ([{}])", text[0]) != NULL)) return 1; // bracket or newline
     else return 0;
 }
 
@@ -284,23 +284,22 @@ void store_number(char* text){
     }
 }
 
-void set_variable(char* text){
+void declare_variable(char* text, char** vars_arr, int* vars_arr_ptr){
     fprintf(write_ptr,
-        "; set %s\n"
-        "pop rax \n"
-        "mov [rbp-%d], rax \n\n", text, vars_global_ptr * align + align);
-    vars_global[vars_global_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars_global[vars_global_ptr++], text);
+        "; declare %s\n"
+        "mov [rbp-%d], 0 \n\n", text, *vars_arr_ptr * align + align);
+    vars_arr[*vars_arr_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars_arr[(*vars_arr_ptr)++], text);
 }
 
-/*
-void set_function_parameter_variable(char* text){
-    fprintf(write_ptr, "; set func var |%s|\n", text);
-    fprintf(write_ptr, "mov [rbp-%d], %s \n\n", vars_local_ptr * align + align, arguments[vars_local_ptr]);
-    vars_local[vars_local_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars_local[vars_local_ptr++], text);
+void construct_variable(char* text, char** vars_arr, int* vars_arr_ptr){
+    fprintf(write_ptr,
+        "; construct %s\n"
+        "pop rax \n"
+        "mov [rbp-%d], rax \n\n", text, *vars_arr_ptr * align + align);
+    vars_arr[*vars_arr_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(vars_arr[(*vars_arr_ptr)++], text);
 }
-*/
 
 void recall_variable_primitive(char* text){
     if(strcmp(text, "") != 0 && is_letter_str(text)){
@@ -373,15 +372,15 @@ int recall_or_update_variable_array(char* text){
 void recall_or_update_variable(char* text){
     if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
         char* next_token = read_token();
-        if(strcmp(next_token, "[") == 0){ 
+        if(strcmp(next_token, "[") == 0){ // array
             recall_or_update_variable_array(text);
         }
-        else if(strcmp(next_token, "=") == 0){
+        else if(strcmp(next_token, "=") == 0){ // update primitive
             update_variable_primitive(text);
             read_until_token(";");
             assign_variable();
         }
-        else{
+        else{ // recall primitive
             ungetstring(next_token);
             recall_variable_primitive(text);
         }
@@ -422,33 +421,47 @@ void handle_conditional(char* text, int idem_key){
     else if(strcmp(text, "while") == 0) handle_conditional_while(idem_key);
 }
 
-void handle_function_declaration(){
-    /*
-    else if(strcmp(next_token, "(") == 0){    // function
-        fprintf(write_ptr, "\nfunc %d: \n", idem_key);
-        free(read_chars(")"));
-        check_next_word("{");
-        free(read_chars("}"));
-        fprintf(write_ptr, "ret \n");
-    }
-    */
+void handle_function_declaration(int idem_key){
+    fprintf(write_ptr, "\nfunc %d: \n", idem_key);
+    fprintf(write_ptr, "; here1\n");
+    read_until_token(")");
+    fprintf(write_ptr, "; here2\n");
+    check_next_word("{");
+    fprintf(write_ptr, "; here3\n");
+    read_until_token("}");
+    fprintf(write_ptr, "ret \n");
 }
 
 void handle_declaration(char* text, char* match, int idem_key){
-    check_next_word(" ");
+    if(strcmp(text, "int") == 0){
+        check_next_word(" ");
+    }
+    else if(strcmp(text, "static") == 0){
+        check_next_word(" ");
+        check_next_word("int");
+    }
+    else if(strcmp(text, "void") == 0){
+        check_next_word(" ");
+    }
+    else return;
     char* var_name = read_token();
     char* next_token = read_token();
-    if(strcmp(next_token, "[") == 0){
+    if(strcmp(next_token, "[") == 0){ // array
         free(read_token());
         check_next_word("]");
         mmap();
-        set_variable(var_name);
+        construct_variable(var_name, vars_global, &vars_global_ptr);
     }
-    else if(strcmp(next_token, "=") == 0){
+    else if(strcmp(next_token, "=") == 0){ // construct primitive
         read_until_token(match);
-        set_variable(var_name);
+        construct_variable(var_name, vars_global, &vars_global_ptr);
     }
-    // handle_function_declaration();
+    else if(strcmp(next_token, ",") == 0 || strcmp(next_token, ";") == 0 || strcmp(next_token, ")") == 0){ // declare primitive
+        declare_variable(var_name, vars_global, &vars_global_ptr);
+    }
+    else if(strcmp(next_token, "(") == 0){ // function
+        handle_function_declaration(counter);
+    }
     free(next_token);
     free(var_name);
 }
@@ -477,10 +490,11 @@ void read_until_token(char* match){
         char* next_token = read_token();
         if(handle_operator(next_token, match) // pass control flow
             || strcmp(match, next_token) == 0){  // match found
+            fprintf(write_ptr, "; Found %s\n", match);
             free(next_token);
             return;
         }
-        if(strcmp(next_token, "int") == 0) handle_declaration(next_token, match, counter++);
+        handle_declaration(next_token, match, counter++);
         handle_builtin_function(next_token, match, counter++);
         handle_conditional(next_token, counter++);
         match_opposite_delimiter(next_token);
@@ -496,7 +510,7 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            // fprintf(write_ptr, "; token: |%s|\n", text);
+            fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
             recall_or_update_variable(text);
             return text;

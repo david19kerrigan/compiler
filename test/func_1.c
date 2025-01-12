@@ -1,4 +1,3 @@
-int main(int a, int b){
+void main(int a, int b){
     print(a);
 }
-main(a);

@@ -12,12 +12,15 @@ static int vars_local_ptr = 0;
 static char** functions = NULL;
 static int functions_ptr = 0;
 static int counter = 0;
+static int scope = 0; // 0 = global ; 1 = local
+static char*** vars_cur = NULL;
+static int* vars_cur_ptr = 0;
 static int arguments_ptr = 0;
 static char* arguments[] = {"rdi", "rsi", "rdx", "rcx", "r8", "r9"};
 static const char* build_dir = "build/";
 static const char* src_dir = "src/";
-static const int DEFAULT_SIZE = 32;
-static const int align = 32;
+static const int DEFAULT_SIZE = 64;
+static const int align = 64;
 
 void assign_variable(){
     fprintf(write_ptr,
@@ -219,7 +222,6 @@ void free_array(char** arr, int arr_ptr){
     for(int i = 0; i < arr_ptr; ++i){
         free(arr[i]);
     }
-    free(arr);
 }
 
 int is_num_char(char in){
@@ -284,21 +286,21 @@ void store_number(char* text){
     }
 }
 
-void declare_variable(char* text, char** vars_arr, int* vars_arr_ptr){
+void declare_variable(char* text){
     fprintf(write_ptr,
         "; declare %s\n"
-        "mov [rbp-%d], 0 \n\n", text, *vars_arr_ptr * align + align);
-    vars_arr[*vars_arr_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars_arr[(*vars_arr_ptr)++], text);
+        "mov qword [rbp-%d], 0 \n\n", text, (*vars_cur_ptr) * align + align);
+    (*vars_cur)[(*vars_cur_ptr)] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy((*vars_cur)[(*vars_cur_ptr)++], text);
 }
 
-void construct_variable(char* text, char** vars_arr, int* vars_arr_ptr){
+void construct_variable(char* text){
     fprintf(write_ptr,
         "; construct %s\n"
         "pop rax \n"
-        "mov [rbp-%d], rax \n\n", text, *vars_arr_ptr * align + align);
-    vars_arr[*vars_arr_ptr] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy(vars_arr[(*vars_arr_ptr)++], text);
+        "mov qword [rbp-%d], rax \n\n", text, (*vars_cur_ptr) * align + align);
+    (*vars_cur)[(*vars_cur_ptr)] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy((*vars_cur)[(*vars_cur_ptr)++], text);
 }
 
 void recall_variable_primitive(char* text){
@@ -422,14 +424,15 @@ void handle_conditional(char* text, int idem_key){
 }
 
 void handle_function_declaration(int idem_key){
-    fprintf(write_ptr, "\nfunc %d: \n", idem_key);
-    fprintf(write_ptr, "; here1\n");
+    fprintf(write_ptr, 
+        "jmp block_%d \n"
+        "func_%d: \n"
+        "mov rbp, rsp \n", idem_key, idem_key);
     read_until_token(")");
-    fprintf(write_ptr, "; here2\n");
     check_next_word("{");
-    fprintf(write_ptr, "; here3\n");
     read_until_token("}");
-    fprintf(write_ptr, "ret \n");
+    fprintf(write_ptr, "ret \n"
+        "block_%d:\n", idem_key);
 }
 
 void handle_declaration(char* text, char* match, int idem_key){
@@ -450,17 +453,26 @@ void handle_declaration(char* text, char* match, int idem_key){
         free(read_token());
         check_next_word("]");
         mmap();
-        construct_variable(var_name, vars_global, &vars_global_ptr);
+        construct_variable(var_name);
     }
     else if(strcmp(next_token, "=") == 0){ // construct primitive
         read_until_token(match);
-        construct_variable(var_name, vars_global, &vars_global_ptr);
+        construct_variable(var_name);
     }
     else if(strcmp(next_token, ",") == 0 || strcmp(next_token, ";") == 0 || strcmp(next_token, ")") == 0){ // declare primitive
-        declare_variable(var_name, vars_global, &vars_global_ptr);
+        ungetstring(next_token);
+        declare_variable(var_name);
     }
     else if(strcmp(next_token, "(") == 0){ // function
+        scope = 1;
+        vars_cur = &vars_local;
+        vars_cur_ptr = &vars_local_ptr;
         handle_function_declaration(counter);
+        scope = 0;
+        vars_cur = &vars_global;
+        vars_cur_ptr = &vars_global_ptr;
+        free_array(vars_local, vars_local_ptr);
+        vars_local_ptr = 0;
     }
     free(next_token);
     free(var_name);
@@ -471,6 +483,9 @@ void handle_builtin_function(char* text, char* match, int idem_key){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
+    }
+    else if(find_in_array(text, functions, functions_ptr) >= 0){
+        printf("; call %s", text);
     }
 }
 
@@ -510,7 +525,7 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            fprintf(write_ptr, "; token: |%s|\n", text);
+            // fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
             recall_or_update_variable(text);
             return text;
@@ -530,6 +545,8 @@ void compile(char *input_file){
     strcpy(write_path, build_dir);
     strcat(read_path, input_file);
     strcat(write_path, "main.asm");
+    vars_cur = &vars_global;
+    vars_cur_ptr = &vars_global_ptr;
 
     read_ptr = fopen(read_path, "r");
     write_ptr = fopen(write_path, "w");
@@ -555,6 +572,9 @@ void compile(char *input_file){
     free_array(vars_global, vars_global_ptr);
     free_array(vars_local, vars_local_ptr);
     free_array(functions, functions_ptr);
+    free(vars_global);
+    free(vars_local);
+    free(functions);
 
     pclose(read_ptr);
     fclose(write_ptr);

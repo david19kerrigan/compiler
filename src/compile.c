@@ -323,7 +323,8 @@ void construct_variable(char* text){
 
 void recall_variable_primitive(char* text){
     if(strcmp(text, "") != 0 && is_letter_str(text)){
-        int offset = find_in_array(text, vars_global, vars_global_ptr);
+        fprintf(write_ptr, "; seeking %s\n", text);
+        int offset = find_in_array(text, *vars_cur, *vars_cur_ptr);
         if(offset < 0) return;
         fprintf(write_ptr,
             "; recall %s \n"
@@ -389,7 +390,7 @@ int recall_or_update_resource_array(char* text){
 
 void recall_or_update_resource(char* text){
     int function_pos = find_in_array(text, function_names, function_names_ptr);
-    if(find_in_array(text, vars_global, vars_global_ptr) >= 0){ // variable
+    if(find_in_array(text, *vars_cur, *vars_cur_ptr) >= 0){ // variable
         char* next_token = read_token();
         if(strcmp(next_token, "[") == 0){ // array
             recall_or_update_resource_array(text);
@@ -451,14 +452,12 @@ void handle_conditional(char* text, int idem_key){
 void handle_function_declaration(int idem_key){
     fprintf(write_ptr, 
         "jmp block_%d \n"
-        "func_%d: \n"
-        "push rbx\n", idem_key, idem_key);
+        "func_%d: \n", idem_key, idem_key);
     scope = 3;
     read_until_token(")");
     check_next_word("{");
     read_until_token("}");
     fprintf(write_ptr, 
-        "pop rbx \n"
         "ret \n"
         "block_%d:\n", idem_key);
 }

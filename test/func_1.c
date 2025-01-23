@@ -1,4 +1,4 @@
 void main(int a, int b){
-    print(a);
+    print(a+b);
 }
-main(1,2);
+main(7,8);

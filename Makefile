@@ -5,8 +5,8 @@ AFLAGS = -felf64 -g
 TEST_DIR = ./test
 SRC_DIR = ./src
 BUILD_DIR = ./build
-TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c vars_3.c vars_4.c bool_1.c bool_2.c bool_3.c cond_1.c while_1.c while_2.c array_1.c func_1.c
-ANS = 19 15 66 9 21 42 1643628 1 0 1 12 4,3,2,1,0 1,2,3,4,5 5,6,7,8,9 15
+TEST_FILES = math_1.c math_2.c math_3.c vars_1.c vars_2.c vars_3.c vars_4.c bool_1.c bool_2.c bool_3.c cond_1.c while_1.c while_2.c array_1.c func_1.c func_2.c
+ANS = 19 15 66 9 21 42 1643628 1 0 1 12 4,3,2,1,0 1,2,3,4,5 5,6,7,8,9 15 15
 
 # set args ../test/func_1.c
 

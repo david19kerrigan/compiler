@@ -299,10 +299,18 @@ void store_number(char* text){
 }
 
 void declare_variable(char* text){
-    fprintf(write_ptr,
-        "; declare %s\n"
-        "mov qword [rbp-%d], 0 \n\n", text, (*vars_cur_ptr) * align + align);
-    append_array_char(*vars_cur, vars_cur_ptr, text);
+    if(scope == 0){
+        fprintf(write_ptr,
+            "; declare %s\n"
+            "mov qword [rbp-%d], 0 \n\n", text, (*vars_cur_ptr) * align + align);
+        append_array_char(*vars_cur, vars_cur_ptr, text);
+    }
+    else if(scope == 3){
+        fprintf(write_ptr,
+            "; declare %s\n"
+            "mov qword [rbp-%d], %s\n\n", text, (*vars_cur_ptr) * align + align, arguments[arguments_ptr++]);
+        append_array_char(*vars_cur, vars_cur_ptr, text);
+    }
 }
 
 void construct_variable(char* text){
@@ -444,11 +452,14 @@ void handle_function_declaration(int idem_key){
     fprintf(write_ptr, 
         "jmp block_%d \n"
         "func_%d: \n"
-        "mov rbp, rsp \n", idem_key, idem_key);
+        "push rbx\n", idem_key, idem_key);
+    scope = 3;
     read_until_token(")");
     check_next_word("{");
     read_until_token("}");
-    fprintf(write_ptr, "ret \n"
+    fprintf(write_ptr, 
+        "pop rbx \n"
+        "ret \n"
         "block_%d:\n", idem_key);
 }
 
@@ -491,6 +502,7 @@ void handle_declaration(char* text, char* match, int idem_key){
         vars_cur_ptr = &vars_local_ptr;
         handle_function_declaration(counter);
         scope = 0;
+        arguments_ptr = 0;
         vars_cur = &vars_global;
         vars_cur_ptr = &vars_global_ptr;
         free_array(vars_local, vars_local_ptr);

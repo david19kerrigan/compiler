@@ -14,7 +14,7 @@ static int function_names_ptr = 0;
 static char** function_blocks = NULL;
 static int function_blocks_ptr = 0;
 static int counter = 0;
-static int scope = 0; // 0 = global ; 1 = local
+static int scope = 0; // 0 = global ; 1 = local ; 2 = invoking function ; 3 = defining function
 static char*** vars_cur = NULL;
 static int* vars_cur_ptr = 0;
 static int arguments_ptr = 0;
@@ -289,7 +289,12 @@ void match_opposite_delimiter(char* text){
 
 void store_number(char* text){
     if(is_num_str(text)){
-        fprintf(write_ptr, "push %s \n", text);
+        if(scope == 0){
+            fprintf(write_ptr, "push %s \n", text);
+        }
+        else if(scope == 2){
+            fprintf(write_ptr, "mov %s, %s \n", arguments[arguments_ptr++], text);
+        }
     }
 }
 
@@ -297,8 +302,7 @@ void declare_variable(char* text){
     fprintf(write_ptr,
         "; declare %s\n"
         "mov qword [rbp-%d], 0 \n\n", text, (*vars_cur_ptr) * align + align);
-    (*vars_cur)[(*vars_cur_ptr)] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy((*vars_cur)[(*vars_cur_ptr)++], text);
+    append_array_char(*vars_cur, vars_cur_ptr, text);
 }
 
 void construct_variable(char* text){
@@ -306,8 +310,7 @@ void construct_variable(char* text){
         "; construct %s\n"
         "pop rax \n"
         "mov qword [rbp-%d], rax \n\n", text, (*vars_cur_ptr) * align + align);
-    (*vars_cur)[(*vars_cur_ptr)] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-    strcpy((*vars_cur)[(*vars_cur_ptr)++], text);
+    append_array_char(*vars_cur, vars_cur_ptr, text);
 }
 
 void recall_variable_primitive(char* text){
@@ -377,7 +380,8 @@ int recall_or_update_resource_array(char* text){
 }
 
 void recall_or_update_resource(char* text){
-    if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
+    int function_pos = find_in_array(text, function_names, function_names_ptr);
+    if(find_in_array(text, vars_global, vars_global_ptr) >= 0){ // variable
         char* next_token = read_token();
         if(strcmp(next_token, "[") == 0){ // array
             recall_or_update_resource_array(text);
@@ -393,9 +397,12 @@ void recall_or_update_resource(char* text){
         }
         free(next_token);
     }
-    else if(find_in_array(text, function_names, function_names_ptr) >= 0){
-        int offset = find_in_array(text, function_names, function_names_ptr);
-        if(offset < 0) return;
+    else if(function_pos >= 0){ // invoke function
+        check_next_word("(");
+        scope = 2;
+        read_until_token(")");
+        fprintf(write_ptr, "call %s \n", function_blocks[function_pos]);
+        scope = 0;
         // read parameter variables
     }
 }
@@ -476,7 +483,7 @@ void handle_declaration(char* text, char* match, int idem_key){
     else if(strcmp(next_token, "(") == 0){ // function
         fprintf(write_ptr, "; declare function %s \n", var_name);
         char* block_buffer = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
-        sprintf(block_buffer, "block_%d", counter);
+        sprintf(block_buffer, "func_%d", counter);
         append_array_char(function_names, &function_names_ptr, var_name);
         append_array_char(function_blocks, &function_blocks_ptr, block_buffer);
         scope = 1;

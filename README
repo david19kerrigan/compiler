@@ -1,6 +1,5 @@
 # To Do
-- correct variable scopes
-- functions
-- implement minimal printf
-- malloc, realloc
+- cleanup functions
+- implement minimal printf?
+- malloc, realloc?
 

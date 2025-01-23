@@ -42,7 +42,8 @@ void mmap(){
         "mov r8, -1 \n"
         "mov r9, 0 \n"
         "syscall \n"
-        "push rax \n", align);
+        "push rax \n", 
+        align);
 }
 
 void print_int(){
@@ -57,7 +58,8 @@ void cond_if(int idem_key){
         "pop rax \n"
         "cmp rax, 1 \n"
         "je cond_if%d \n"
-        "jne block%d \n\n", idem_key, idem_key);
+        "jne block%d \n\n", 
+        idem_key, idem_key);
 }
 
 void cond_while(int idem_key){
@@ -65,7 +67,8 @@ void cond_while(int idem_key){
         "pop rax \n"
         "cmp rax, 1 \n"
         "je cond_while%d \n"
-        "jne block%d \n\n", idem_key, idem_key);
+        "jne block%d \n\n", 
+        idem_key, idem_key);
 }
 
 void or(){
@@ -289,35 +292,28 @@ void match_opposite_delimiter(char* text){
 
 void store_number(char* text){
     if(is_num_str(text)){
-        if(scope == 0){
-            fprintf(write_ptr, "push %s \n", text);
-        }
-        else if(scope == 2){
-            fprintf(write_ptr, "mov %s, %s \n", arguments[arguments_ptr++], text);
-        }
+        if(scope == 0) fprintf(write_ptr, "push %s \n", text);
+        else if(scope == 2) fprintf(write_ptr, "mov %s, %s \n", arguments[arguments_ptr++], text);
     }
 }
 
 void declare_variable(char* text){
-    if(scope == 0){
-        fprintf(write_ptr,
-            "; declare %s\n"
-            "mov qword [rbp-%d], 0 \n\n", text, (*vars_cur_ptr) * align + align);
-        append_array_char(*vars_cur, vars_cur_ptr, text);
-    }
-    else if(scope == 3){
-        fprintf(write_ptr,
-            "; declare %s\n"
-            "mov qword [rbp-%d], %s\n\n", text, (*vars_cur_ptr) * align + align, arguments[arguments_ptr++]);
-        append_array_char(*vars_cur, vars_cur_ptr, text);
-    }
+    char* init = NULL;
+    if(scope == 0) init = "0";
+    else if(scope == 3) init = arguments[arguments_ptr++];
+    fprintf(write_ptr,
+        "; declare %s\n"
+        "mov qword [rbp-%d], %s \n\n", 
+        text, (*vars_cur_ptr) * align + align, init);
+    append_array_char(*vars_cur, vars_cur_ptr, text);
 }
 
 void construct_variable(char* text){
     fprintf(write_ptr,
         "; construct %s\n"
         "pop rax \n"
-        "mov qword [rbp-%d], rax \n\n", text, (*vars_cur_ptr) * align + align);
+        "mov qword [rbp-%d], rax \n\n", 
+        text, (*vars_cur_ptr) * align + align);
     append_array_char(*vars_cur, vars_cur_ptr, text);
 }
 
@@ -331,7 +327,8 @@ void recall_variable_primitive(char* text){
             "mov rax, rbp \n"
             "sub rax, %d \n"
             "mov rbx, [rax] \n"
-            "push rbx \n\n", text, offset * align + align);
+            "push rbx \n\n", 
+            text, offset * align + align);
     }
 }
 
@@ -346,7 +343,8 @@ void recall_variable_array(char* text){
             "imul rax, %d \n"
             "add rbx, rax \n"
             "mov rax, [rbx] \n"
-            "push rax \n\n", text, offset * align + align, align);
+            "push rax \n\n", 
+            text, offset * align + align, align);
     }
 }
 
@@ -357,7 +355,8 @@ void update_variable_primitive(char* text){
         "; update %s \n"
         "mov rax, rbp \n"
         "sub rax, %d \n"
-        "push rax \n\n", text, offset * align + align);
+        "push rax \n\n", 
+        text, offset * align + align);
 }
 
 void update_variable_array(char* text){
@@ -369,7 +368,8 @@ void update_variable_array(char* text){
         "pop rax \n"
         "imul rax, %d \n"
         "add rbx, rax \n"
-        "push rbx \n", text, offset * align + align, align);
+        "push rbx \n", 
+        text, offset * align + align, align);
 }
 
 int recall_or_update_resource_array(char* text){
@@ -426,7 +426,8 @@ void handle_conditional_if(int idem_key){
     read_until_token("}");
     fprintf(write_ptr, 
         "jmp block%d \n"
-        "block%d: \n", idem_key, idem_key);
+        "block%d: \n", 
+        idem_key, idem_key);
 }
 
 void handle_conditional_while(int idem_key){
@@ -441,7 +442,8 @@ void handle_conditional_while(int idem_key){
     read_until_token("}");
     fprintf(write_ptr, 
         "jmp pre_while%d \n"
-        "block%d: \n", idem_key, idem_key);
+        "block%d: \n", 
+        idem_key, idem_key);
 }
 
 void handle_conditional(char* text, int idem_key){
@@ -450,16 +452,27 @@ void handle_conditional(char* text, int idem_key){
 }
 
 void handle_function_declaration(int idem_key){
+    vars_cur = &vars_local;
+    vars_cur_ptr = &vars_local_ptr;
     fprintf(write_ptr, 
         "jmp block_%d \n"
-        "func_%d: \n", idem_key, idem_key);
+        "func_%d: \n", 
+        idem_key, idem_key);
     scope = 3;
     read_until_token(")");
     check_next_word("{");
+    scope = 1;
     read_until_token("}");
+    scope = 0;
+    arguments_ptr = 0;
+    vars_local_ptr = 0;
+    vars_cur = &vars_global;
+    vars_cur_ptr = &vars_global_ptr;
+    free_array(vars_local, vars_local_ptr);
     fprintf(write_ptr, 
         "ret \n"
-        "block_%d:\n", idem_key);
+        "block_%d:\n", 
+        idem_key);
 }
 
 void handle_declaration(char* text, char* match, int idem_key){
@@ -495,17 +508,8 @@ void handle_declaration(char* text, char* match, int idem_key){
         char* block_buffer = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         sprintf(block_buffer, "func_%d", counter);
         append_array_char(function_names, &function_names_ptr, var_name);
-        append_array_char(function_blocks, &function_blocks_ptr, block_buffer);
-        scope = 1;
-        vars_cur = &vars_local;
-        vars_cur_ptr = &vars_local_ptr;
+        append_array_char(function_blocks, &function_blocks_ptr, block_buffer); // this will be freed at the end of the file
         handle_function_declaration(counter);
-        scope = 0;
-        arguments_ptr = 0;
-        vars_cur = &vars_global;
-        vars_cur_ptr = &vars_global_ptr;
-        free_array(vars_local, vars_local_ptr);
-        vars_local_ptr = 0;
     }
     free(next_token);
     free(var_name);
@@ -516,9 +520,6 @@ void handle_builtin_function(char* text, char* match, int idem_key){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
-    }
-    else if(find_in_array(text, function_names, function_names_ptr) >= 0){
-        printf("; call %s", text);
     }
 }
 

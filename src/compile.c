@@ -9,8 +9,10 @@ static char** vars_global = NULL;
 static int vars_global_ptr = 0;
 static char** vars_local = NULL;
 static int vars_local_ptr = 0;
-static char** functions = NULL;
-static int functions_ptr = 0;
+static char** function_names = NULL;
+static int function_names_ptr = 0;
+static char** function_blocks = NULL;
+static int function_blocks_ptr = 0;
 static int counter = 0;
 static int scope = 0; // 0 = global ; 1 = local
 static char*** vars_cur = NULL;
@@ -210,6 +212,11 @@ int handle_operator(char* text, char* match){
     else return 0;
 }
 
+void append_array_char(char** arr, int* arr_ptr, char* text){
+    arr[(*arr_ptr)] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+    strcpy(arr[(*arr_ptr)++], text);
+}
+
 int find_in_array(char* text, char** arr, int arr_ptr){
     int offset = -1;
     for(int i = 0; i < arr_ptr; ++i){
@@ -353,29 +360,27 @@ void update_variable_array(char* text){
         "push rbx \n", text, offset * align + align, align);
 }
 
-int recall_or_update_variable_array(char* text){
+int recall_or_update_resource_array(char* text){
     free(read_token());
     check_next_word("]");
     char* eq = read_token();
     if(strcmp(eq, "=") == 0){        // update
-        fprintf(write_ptr, "; one\n");
         update_variable_array(text);
         read_until_token(";");
         assign_variable();
     }
     else{                            // recall
-        fprintf(write_ptr, "; two\n");
         ungetstring(eq);
         recall_variable_array(text);
     }
     free(eq);
 }
 
-void recall_or_update_variable(char* text){
+void recall_or_update_resource(char* text){
     if(find_in_array(text, vars_global, vars_global_ptr) >= 0){
         char* next_token = read_token();
         if(strcmp(next_token, "[") == 0){ // array
-            recall_or_update_variable_array(text);
+            recall_or_update_resource_array(text);
         }
         else if(strcmp(next_token, "=") == 0){ // update primitive
             update_variable_primitive(text);
@@ -387,6 +392,11 @@ void recall_or_update_variable(char* text){
             recall_variable_primitive(text);
         }
         free(next_token);
+    }
+    else if(find_in_array(text, function_names, function_names_ptr) >= 0){
+        int offset = find_in_array(text, function_names, function_names_ptr);
+        if(offset < 0) return;
+        // read parameter variables
     }
 }
 
@@ -464,6 +474,11 @@ void handle_declaration(char* text, char* match, int idem_key){
         declare_variable(var_name);
     }
     else if(strcmp(next_token, "(") == 0){ // function
+        fprintf(write_ptr, "; declare function %s \n", var_name);
+        char* block_buffer = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+        sprintf(block_buffer, "block_%d", counter);
+        append_array_char(function_names, &function_names_ptr, var_name);
+        append_array_char(function_blocks, &function_blocks_ptr, block_buffer);
         scope = 1;
         vars_cur = &vars_local;
         vars_cur_ptr = &vars_local_ptr;
@@ -484,7 +499,7 @@ void handle_builtin_function(char* text, char* match, int idem_key){
         read_until_token(")");
         print_int(write_ptr);
     }
-    else if(find_in_array(text, functions, functions_ptr) >= 0){
+    else if(find_in_array(text, function_names, function_names_ptr) >= 0){
         printf("; call %s", text);
     }
 }
@@ -525,9 +540,8 @@ char* read_token(){
         int cur = fgetc(read_ptr);
         if(check_should_terminate(text, text_ptr, cur)){
             ungetc(cur, read_ptr);
-            // fprintf(write_ptr, "; token: |%s|\n", text);
             store_number(text);
-            recall_or_update_variable(text);
+            recall_or_update_resource(text);
             return text;
         }
         else{
@@ -552,7 +566,8 @@ void compile(char *input_file){
     write_ptr = fopen(write_path, "w");
     vars_global = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
     vars_local = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
-    functions = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    function_names = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    function_blocks = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
 
     fprintf(write_ptr,
         "global _start \n" 
@@ -571,10 +586,12 @@ void compile(char *input_file){
 
     free_array(vars_global, vars_global_ptr);
     free_array(vars_local, vars_local_ptr);
-    free_array(functions, functions_ptr);
+    free_array(function_names, function_names_ptr);
+    free_array(function_blocks, function_blocks_ptr);
     free(vars_global);
     free(vars_local);
-    free(functions);
+    free(function_names);
+    free(function_blocks);
 
     pclose(read_ptr);
     fclose(write_ptr);

@@ -410,9 +410,8 @@ void recall_or_update_resource(char* text){
         check_next_word("(");
         scope = 2;
         read_until_token(")");
-        fprintf(write_ptr, "call %s \n", function_blocks[function_pos]);
         scope = 0;
-        // read parameter variables
+        fprintf(write_ptr, "call %s \n", function_blocks[function_pos]);
     }
 }
 

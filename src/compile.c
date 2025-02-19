@@ -411,7 +411,7 @@ void recall_or_update_resource(char* text){
         scope = 2;
         read_until_token(")");
         scope = 0;
-        fprintf(write_ptr, "call %s \n", function_blocks[function_pos]);
+        fprintf(write_ptr, "call %s \n push rax \n", function_blocks[function_pos]);
     }
 }
 
@@ -519,6 +519,14 @@ void handle_builtin_function(char* text, char* match, int idem_key){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
+    }
+    else if(strcmp(text, "return") == 0){
+        read_until_token(";");
+        fprintf(write_ptr, 
+            "pop rax \n"
+            "ret \n"
+            "block_%d:\n", 
+            idem_key);
     }
 }
 

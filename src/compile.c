@@ -411,7 +411,10 @@ void recall_or_update_resource(char* text){
         scope = 2;
         read_until_token(")");
         scope = 0;
-        fprintf(write_ptr, "call %s \n push rax \n", function_blocks[function_pos]);
+        fprintf(write_ptr, 
+            "call %s \n" 
+            "push rax \n", 
+            function_blocks[function_pos]);
     }
 }
 

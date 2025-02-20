@@ -1,4 +1,5 @@
 int main(int a, int b){
     return a+b;
 }
-print(main(7,8));
+int c=main(7,8);
+print(c);

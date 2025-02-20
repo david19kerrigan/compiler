@@ -517,11 +517,12 @@ void handle_declaration(char* text, char* match, int idem_key){
     free(var_name);
 }
 
-void handle_builtin_function(char* text, char* match, int idem_key){
+int handle_builtin_function(char* text, char* match, int idem_key){
     if(strcmp(text, "print") == 0){
         check_next_word("(");
         read_until_token(")");
         print_int(write_ptr);
+        return 0;
     }
     else if(strcmp(text, "return") == 0){
         read_until_token(";");
@@ -530,7 +531,9 @@ void handle_builtin_function(char* text, char* match, int idem_key){
             "ret \n"
             "block_%d:\n", 
             idem_key);
+        return 1;
     }
+    else return 0;
 }
 
 void check_next_word(char* text){
@@ -547,14 +550,14 @@ void read_until_token(char* match){
     fprintf(write_ptr, "; Looking for %s\n", match);
     while(feof(read_ptr) == 0){
         char* next_token = read_token();
-        if(handle_operator(next_token, match) // pass control flow
+        if(handle_operator(next_token, match)
+            || handle_builtin_function(next_token, match, counter++) // pass control flow
             || strcmp(match, next_token) == 0){  // match found
             fprintf(write_ptr, "; Found %s\n", match);
             free(next_token);
             return;
         }
         handle_declaration(next_token, match, counter++);
-        handle_builtin_function(next_token, match, counter++);
         handle_conditional(next_token, counter++);
         match_opposite_delimiter(next_token);
         free(next_token);

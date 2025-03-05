@@ -20,7 +20,7 @@ test:
 		expected=$$(echo $(ANS) | cut -d' ' -f$$((i)) | sed 's/,/\n/g') ; \
 		$(CC) $(CFLAGS) ./$(SRC_DIR)/compile.c -o $(BUILD_DIR)/compile.out ; \
 		$(BUILD_DIR)/compile.out ../$(TEST_DIR)/"$$test_file" ; \
-		#cat $(BUILD_DIR)/main.asm | nl ; \
+		cat $(BUILD_DIR)/main.asm | nl ; \
 		$(AC) $(AFLAGS) $(BUILD_DIR)/main.asm -o $(BUILD_DIR)/main.out ; \
 		$(AC) $(AFLAGS) ./$(SRC_DIR)/lib.asm -o $(BUILD_DIR)/lib.out ; \
 		ld $(BUILD_DIR)/main.out $(BUILD_DIR)/lib.out -o $(BUILD_DIR)/final.out ; \

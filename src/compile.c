@@ -9,10 +9,15 @@ static char** vars_global = NULL;
 static int vars_global_ptr = 0;
 static char** vars_local = NULL;
 static int vars_local_ptr = 0;
-static char** function_names = NULL;
-static int function_names_ptr = 0;
-static char** function_blocks = NULL;
-static int function_blocks_ptr = 0;
+
+struct function_struct{
+    char* name;
+    char* block;
+    char* return_type;
+};
+typedef struct function_struct function;
+static function* functions = NULL;
+static int functions_ptr = 0;
 static int counter = 0;
 static int scope = 0; // 0 = global ; 1 = local ; 2 = invoking function ; 3 = defining function
 static char*** vars_cur = NULL;
@@ -215,6 +220,10 @@ int handle_operator(char* text, char* match){
     else return 0;
 }
 
+void append_array_function(function* arr, int* arr_ptr, function func){
+    arr[(*arr_ptr)++] = func;
+}
+
 void append_array_char(char** arr, int* arr_ptr, char* text){
     arr[(*arr_ptr)] = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
     strcpy(arr[(*arr_ptr)++], text);
@@ -228,9 +237,26 @@ int find_in_array(char* text, char** arr, int arr_ptr){
     return offset;
 }
 
+int find_in_func_array(char* text, function* arr, int arr_ptr){
+    int offset = -1;
+    for(int i = 0; i < arr_ptr; ++i){
+        if(strcmp(arr[i].name, text) == 0) offset = i;
+    }
+    return offset;
+}
+
 void free_array(char** arr, int arr_ptr){
     for(int i = 0; i < arr_ptr; ++i){
         free(arr[i]);
+    }
+}
+
+void free_func_array(function* arr, int arr_ptr){
+    for(int i = 0; i < arr_ptr; ++i){
+        free(arr[i].name);
+        free(arr[i].block);
+        free(arr[i].return_type);
+        free(&arr[i]);
     }
 }
 
@@ -389,7 +415,7 @@ int recall_or_update_resource_array(char* text){
 }
 
 void recall_or_update_resource(char* text){
-    int function_pos = find_in_array(text, function_names, function_names_ptr);
+    int function_pos = find_in_func_array(text, functions, functions_ptr);
     if(find_in_array(text, *vars_cur, *vars_cur_ptr) >= 0){ // variable
         char* next_token = read_token();
         if(strcmp(next_token, "[") == 0){ // array
@@ -411,10 +437,8 @@ void recall_or_update_resource(char* text){
         scope = 2;
         read_until_token(")");
         scope = 0;
-        fprintf(write_ptr, 
-            "call %s \n" 
-            "push rax \n", 
-            function_blocks[function_pos]);
+        fprintf(write_ptr, "call %s \n", functions[function_pos].block);
+        if(strcmp(functions[function_pos].return_type, "int") == 0) fprintf(write_ptr, "push rax \n");
     }
 }
 
@@ -509,8 +533,14 @@ void handle_declaration(char* text, char* match, int idem_key){
         fprintf(write_ptr, "; declare function %s \n", var_name);
         char* block_buffer = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
         sprintf(block_buffer, "func_%d", counter);
-        append_array_char(function_names, &function_names_ptr, var_name);
-        append_array_char(function_blocks, &function_blocks_ptr, block_buffer); // this will be freed at the end of the file
+        function test_function;
+        test_function.name = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+        test_function.block = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+        test_function.return_type = (char*) malloc(sizeof(char) * DEFAULT_SIZE);
+        strcpy(test_function.name, var_name);
+        strcpy(test_function.block, block_buffer);
+        strcpy(test_function.return_type, text);
+        append_array_function(functions, &functions_ptr, test_function);
         handle_function_declaration(counter);
     }
     free(next_token);
@@ -598,8 +628,7 @@ void compile(char *input_file){
     write_ptr = fopen(write_path, "w");
     vars_global = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
     vars_local = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
-    function_names = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
-    function_blocks = (char**) malloc(sizeof(char*) * DEFAULT_SIZE);
+    functions = (function*) malloc(sizeof(function) * DEFAULT_SIZE);
 
     fprintf(write_ptr,
         "global _start \n" 
@@ -618,12 +647,9 @@ void compile(char *input_file){
 
     free_array(vars_global, vars_global_ptr);
     free_array(vars_local, vars_local_ptr);
-    free_array(function_names, function_names_ptr);
-    free_array(function_blocks, function_blocks_ptr);
+    free_func_array(functions, functions_ptr);
     free(vars_global);
     free(vars_local);
-    free(function_names);
-    free(function_blocks);
 
     pclose(read_ptr);
     fclose(write_ptr);
